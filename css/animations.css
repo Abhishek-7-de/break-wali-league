@@ -1,0 +1,114 @@
+@keyframes popReveal {
+  0% {
+    transform: scale(0.82);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes stadiumPulse {
+  0% {
+    box-shadow:
+      inset 0 0 0 rgba(53,208,127,0.04),
+      0 0 0 rgba(53,208,127,0.04);
+  }
+  100% {
+    box-shadow:
+      inset 0 0 36px rgba(53,208,127,0.08),
+      0 0 36px rgba(53,208,127,0.08);
+  }
+}
+
+@keyframes crowdFlash {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.34;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes resultBurst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.72);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes floatingScore {
+  0% {
+    transform: translate(-50%, 16px) scale(0.86);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -24px) scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-reveal {
+  animation: popReveal 0.24s ease;
+}
+
+.animate-stadium-live {
+  animation: stadiumPulse 0.5s ease-in-out infinite alternate;
+}
+
+.animate-crowd-flash {
+  animation: crowdFlash 0.6s ease-out;
+}
+
+.animate-result-burst {
+  animation: resultBurst 0.32s ease-out forwards;
+}
+
+.animate-floating-score {
+  animation: floatingScore 0.8s ease-out forwards;
+}
+
+.zone-hit {
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 0 24px rgba(53,208,127,0.32),
+    inset 0 0 18px rgba(255,255,255,0.08);
+  transform: scale(1.08);
+  transition: 0.18s ease;
+}
+
+.zone-hit-negative {
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 0 24px rgba(255,107,107,0.28),
+    inset 0 0 18px rgba(255,255,255,0.06);
+  transform: scale(1.08);
+  transition: 0.18s ease;
+}
+
+.ball-impact {
+  box-shadow:
+    0 0 28px rgba(255,255,255,0.34),
+    0 0 36px rgba(53,208,127,0.22);
+}
+
+.ball-impact-negative {
+  box-shadow:
+    0 0 28px rgba(255,255,255,0.22),
+    0 0 30px rgba(255,107,107,0.18);
+}

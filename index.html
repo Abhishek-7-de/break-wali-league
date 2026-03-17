@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Break Wali League</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="./css/styles.css" />
+  <link rel="stylesheet" href="./css/mobile.css" />
+  <link rel="stylesheet" href="./css/animations.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-logo">BWL</div>
+        <div>
+          <p class="eyebrow">IPL Ultimate Arena</p>
+          <h1 id="league-title">Break Wali League</h1>
+        </div>
+      </div>
+      <div class="boost-pill" id="global-boost-pill">Match Boost checking...</div>
+    </header>
+
+    <main class="screen-stack">
+      <section class="screen active" id="screen-home">
+        <div class="hero-card glass-card">
+          <div class="hero-copy">
+            <span class="tag">Live Tournament Mode</span>
+            <h2>Play hard. Score fast. Climb higher.</h2>
+            <p>
+              Enter the arena, create your player identity, choose batting or bowling,
+              and compete for points, stats, and weekly rewards.
+            </p>
+          </div>
+
+          <div class="hero-actions">
+            <button class="btn btn-primary" data-nav="auth">Create Profile</button>
+            <button class="btn btn-secondary" data-nav="auth">Log In</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-auth">
+        <div class="glass-card auth-card">
+          <div class="section-head">
+            <p class="eyebrow">One-time registration</p>
+            <h3>Enter the league</h3>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>Name *</span>
+              <input id="name" type="text" placeholder="Your full name" />
+            </label>
+
+            <label>
+              <span>Phone Number *</span>
+              <input
+                id="phone"
+                type="tel"
+                inputmode="numeric"
+                maxlength="10"
+                placeholder="10 digit phone number"
+              />
+            </label>
+
+            <label class="full-span">
+              <span>Nickname</span>
+              <input id="nickname" type="text" placeholder="Optional nickname" />
+            </label>
+          </div>
+
+          <label class="stay-logged">
+            <input type="checkbox" id="stay-logged-in" />
+            <span>Stay logged in</span>
+          </label>
+
+          <div class="otp-actions">
+            <button class="btn btn-accent" id="send-otp-btn">Send OTP</button>
+            <button class="btn btn-secondary" id="demo-login-btn">Load Demo Player</button>
+          </div>
+
+          <label class="otp-field">
+            <span>OTP *</span>
+            <input id="otp" type="text" inputmode="numeric" maxlength="6" placeholder="Enter OTP" />
+          </label>
+
+          <div id="recaptcha-container" class="recaptcha-slot"></div>
+          <div class="demo-otp hidden" id="otp-preview"></div>
+
+          <div class="action-row">
+            <button class="btn btn-primary" id="verify-btn">Verify & Continue</button>
+            <button class="btn btn-secondary" data-nav="home">Back</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-dashboard">
+        <div class="dashboard-grid">
+          <div class="glass-card player-card">
+            <div class="player-head">
+              <div class="avatar" id="avatar-box">BW</div>
+              <div>
+                <h3 id="player-name">Player</h3>
+                <p id="player-meta">Welcome to the arena</p>
+              </div>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <span>Total Points</span>
+                <strong id="stat-points">0</strong>
+              </div>
+              <div class="stat-card">
+                <span>Rank</span>
+                <strong id="stat-rank">#-</strong>
+              </div>
+              <div class="stat-card">
+                <span>Runs</span>
+                <strong id="profile-runs">0</strong>
+              </div>
+              <div class="stat-card">
+                <span>Wickets</span>
+                <strong id="profile-wickets">0</strong>
+              </div>
+            </div>
+
+            <div class="dashboard-actions sticky-bottom-actions">
+              <button class="play-btn batting" id="unlock-batting-btn">
+                <span class="play-icon icon-bat">
+                  <span class="bat-stick"></span>
+                  <span class="bat-blade"></span>
+                </span>
+                <span>Batting</span>
+              </button>
+              <button class="play-btn bowling" id="unlock-bowling-btn">
+                <span class="play-icon icon-ball">
+                  <span class="ball-core"></span>
+                  <span class="ball-seam seam-a"></span>
+                  <span class="ball-seam seam-b"></span>
+                </span>
+                <span>Bowling</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="dashboard-main">
+            <div class="glass-card arena-card">
+              <div class="section-head row">
+                <div>
+                  <p class="eyebrow">Playing Dashboard</p>
+                  <h3>Enter the arena</h3>
+                </div>
+                <div class="boost-pill" id="arena-boost-pill">Match Boost checking...</div>
+              </div>
+
+              <div class="arena" id="arena">
+                <div>
+                  <h2>Choose your mode</h2>
+                  <p>Step into batting or bowling and make every play count.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-card leaderboard-card">
+              <div class="section-head row">
+                <div>
+                  <p class="eyebrow">Leaderboard</p>
+                  <h3>Main Points Table</h3>
+                </div>
+                <button class="btn btn-secondary small" data-nav="leaderboard">View All</button>
+              </div>
+              <div class="leaderboard-list" id="leaderboard-preview"></div>
+            </div>
+
+            <div class="glass-card leaderboard-card">
+              <div class="section-head row">
+                <div>
+                  <p class="eyebrow">Stats Boards</p>
+                  <h3>Performance Leaders</h3>
+                </div>
+              </div>
+              <div class="leaderboard-list" id="stats-preview"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-batting">
+        <div class="glass-card full-screen-card">
+          <div class="section-head row">
+            <div>
+              <p class="eyebrow">Batting Mode</p>
+              <h3>Strike the shot</h3>
+            </div>
+            <button class="btn btn-secondary small" data-nav="dashboard">Exit</button>
+          </div>
+
+          <div class="gameplay-stage batting-stage" id="batting-stage">
+            <div class="stadium-header">
+              <div class="stadium-score-pill">Arena Live</div>
+              <div class="stadium-instruction" id="bat-status-text">
+                Press Start Play to face the delivery
+              </div>
+            </div>
+
+            <div class="stadium-circle batting-circle">
+              <div class="zone-ring">
+                <div class="zone zone-six">6</div>
+                <div class="zone zone-four">4</div>
+                <div class="zone zone-three">3</div>
+                <div class="zone zone-two">2</div>
+                <div class="zone zone-one">1</div>
+                <div class="zone zone-dot">DOT</div>
+              </div>
+
+              <div class="long-pitch">
+                <div class="pitch-core">
+                  <div class="pitch-mark bowling-mark"></div>
+                  <div class="pitch-mark batting-mark"></div>
+
+                  <div class="player-bowler">
+                    <span class="figure-head"></span>
+                    <span class="figure-body"></span>
+                  </div>
+
+                  <div class="game-ball" id="bat-ball"></div>
+
+                  <div class="player-batsman">
+                    <span class="figure-head"></span>
+                    <span class="figure-body"></span>
+                    <span class="figure-bat"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="timing-meter-wrap">
+              <div class="timing-label">Shot Timing</div>
+              <div class="timing-meter">
+                <div class="timing-perfect-zone"></div>
+                <div class="timing-pointer" id="timing-pointer"></div>
+              </div>
+            </div>
+
+            <div class="gameplay-actions batting-actions">
+              <button class="btn btn-secondary" id="bat-start-btn">Start Play</button>
+              <button class="btn btn-primary" id="bat-shot-btn" disabled>Take Shot</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-bowling">
+        <div class="glass-card full-screen-card">
+          <div class="section-head row">
+            <div>
+              <p class="eyebrow">Bowling Mode</p>
+              <h3>Fire the delivery</h3>
+            </div>
+            <button class="btn btn-secondary small" data-nav="dashboard">Exit</button>
+          </div>
+
+          <div class="gameplay-stage bowling-stage" id="bowling-stage">
+            <div class="stadium-header">
+              <div class="stadium-score-pill">Bowling Arena</div>
+              <div class="stadium-instruction" id="bowl-status-text">
+                Press Start Bowl to build speed
+              </div>
+            </div>
+
+            <div class="stadium-circle bowling-circle">
+              <div class="zone-ring">
+                <div class="zone zone-wicket">WK</div>
+                <div class="zone zone-catch">CT</div>
+                <div class="zone zone-lbw">LBW</div>
+                <div class="zone zone-minus-one">-1</div>
+                <div class="zone zone-minus-four">-4</div>
+                <div class="zone zone-minus-six">-6</div>
+              </div>
+
+              <div class="long-pitch">
+                <div class="pitch-core">
+                  <div class="pitch-mark bowling-mark"></div>
+                  <div class="pitch-mark batting-mark"></div>
+
+                  <div class="player-bowler">
+                    <span class="figure-head"></span>
+                    <span class="figure-body"></span>
+                  </div>
+
+                  <div class="game-ball" id="bowl-ball"></div>
+
+                  <div class="player-batsman auto-bat">
+                    <span class="figure-head"></span>
+                    <span class="figure-body"></span>
+                    <span class="figure-bat"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="speed-meter-wrap">
+              <div class="timing-label">Bowling Speed</div>
+              <div class="speed-meter">
+                <div class="speed-hot-zone"></div>
+                <div class="speed-pointer" id="speed-pointer"></div>
+              </div>
+            </div>
+
+            <div class="gameplay-actions batting-actions">
+              <button class="btn btn-secondary" id="bowl-start-btn">Start Bowl</button>
+              <button class="btn btn-primary" id="bowl-release-btn" disabled>Release Ball</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-leaderboard">
+        <div class="glass-card full-screen-card">
+          <div class="section-head row">
+            <div>
+              <p class="eyebrow">Leaderboard</p>
+              <h3>Main Points Ranking</h3>
+            </div>
+            <button class="btn btn-secondary small" data-nav="dashboard">Back</button>
+          </div>
+
+          <div class="leaderboard-list" id="leaderboard-full"></div>
+
+          <div class="section-head row alt-head">
+            <div>
+              <p class="eyebrow">Stats Rankings</p>
+              <h3>Runs, Wickets, All-Rounders</h3>
+            </div>
+          </div>
+
+          <div class="leaderboard-list" id="leaderboard-stats-full"></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-prizes">
+        <div class="glass-card full-screen-card">
+          <div class="section-head row">
+            <div>
+              <p class="eyebrow">Prize Section</p>
+              <h3>Weekly rewards</h3>
+            </div>
+            <button class="btn btn-secondary small" data-nav="dashboard">Back</button>
+          </div>
+
+          <div class="prize-grid">
+            <div class="stat-card"><span>Top Batter</span><strong>Weekly Prize</strong></div>
+            <div class="stat-card"><span>Most Sixes</span><strong>Weekly Prize</strong></div>
+            <div class="stat-card"><span>Top Wicket Taker</span><strong>Weekly Prize</strong></div>
+            <div class="stat-card"><span>All-Round Impact</span><strong>Weekly Prize</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-profile">
+        <div class="glass-card full-screen-card">
+          <div class="section-head row">
+            <div>
+              <p class="eyebrow">Player Profile</p>
+              <h3>Your stats</h3>
+            </div>
+            <button class="btn btn-secondary small" data-nav="dashboard">Back</button>
+          </div>
+
+          <div class="profile-stats-grid">
+            <div class="stat-card"><span>Runs</span><strong id="profile-runs-full">0</strong></div>
+            <div class="stat-card"><span>Wickets</span><strong id="profile-wickets-full">0</strong></div>
+            <div class="stat-card"><span>Sixes</span><strong id="profile-sixes-full">0</strong></div>
+            <div class="stat-card"><span>Dot Balls</span><strong id="profile-dots-full">0</strong></div>
+          </div>
+
+          <div class="action-row compact">
+            <button class="btn btn-secondary" id="reset-btn">Reset Demo Data</button>
+            <button class="btn btn-secondary" id="logout-btn">Logout</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="rules-sheet hidden" id="rules-sheet">
+      <div class="rules-sheet-inner glass-card">
+        <div class="section-head row">
+          <div>
+            <p class="eyebrow">Rules</p>
+            <h3>Break Wali League</h3>
+          </div>
+          <button class="btn btn-secondary small" id="close-rules-btn">Close</button>
+        </div>
+
+        <ul class="rules-list">
+          <li>Login or create your profile to enter the league.</li>
+          <li>Choose batting or bowling from the dashboard.</li>
+          <li>Each play adds to your points and stats.</li>
+          <li>Points double during Match Boost hours.</li>
+          <li>Top points win the main leaderboard.</li>
+          <li>Special stat leaders also win prizes.</li>
+        </ul>
+      </div>
+    </div>
+
+    <nav class="mobile-nav">
+      <button class="mobile-tab active" data-nav="home">Home</button>
+      <button class="mobile-tab" data-nav="dashboard">Play</button>
+      <button class="mobile-tab" data-nav="leaderboard">Leaderboard</button>
+      <button class="mobile-tab" data-nav="profile">Profile</button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./js/config.js"></script>
+  <script src="./js/storage.js"></script>
+  <script src="./js/gameplay-batting.js"></script>
+  <script src="./js/gameplay-bowling.js"></script>
+  <script src="./js/leaderboard.js"></script>
+  <script src="./js/sounds.js"></script>
+  <script src="./js/auth.firebase-ready.js"></script>
+  <script type="module" src="./js/firebase-service.js"></script>
+  <script type="module" src="./js/app.firebase-ready.js"></script>
+</body>
+</html>
