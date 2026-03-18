@@ -10,6 +10,7 @@
   const fb = window.CBCL_FIREBASE || null;
 
   const els = {
+    splash: document.getElementById('splash-screen'),
     screens: document.querySelectorAll('.screen'),
     tabs: document.querySelectorAll('.mobile-tab, [data-nav]'),
     leagueTitle: document.getElementById('league-title'),
@@ -103,7 +104,7 @@
     els.profileRunsFull.textContent = user.runs || 0;
     els.profileWicketsFull.textContent = user.wickets || 0;
     els.profileSixesFull.textContent = user.sixes || 0;
-    els.profileDotsFull.textContent = user.dots || 0;
+    els.profileDotsFull.textContent = user.matchesPlayed || 0;
     els.avatarBox.textContent = board.initials(user.nickname || user.name);
   };
 
@@ -119,7 +120,7 @@
     els.arena.innerHTML = `
       <div>
         <h2>Choose your mode</h2>
-        <p>Step into batting or bowling and make every play count.</p>
+        <p>Every ball updates the live leaderboard instantly.</p>
       </div>
     `;
   };
@@ -129,6 +130,31 @@
     updateProfile();
     updateBoards();
     storage.save(state);
+  };
+
+  const simulateRivalsTick = () => {
+    const rivals = state.users.filter((u) => u.id !== state.currentUserId);
+    if (!rivals.length) return;
+
+    const movers = rivals.sort(() => Math.random() - 0.5).slice(0, Math.min(2, rivals.length));
+    movers.forEach((rival) => {
+      const gain = Math.random();
+      if (gain > 0.7) {
+        rival.totalPoints += 6;
+        rival.runs = (rival.runs || 0) + 6;
+        rival.sixes = (rival.sixes || 0) + 1;
+      } else if (gain > 0.45) {
+        rival.totalPoints += 4;
+        rival.runs = (rival.runs || 0) + 4;
+      } else if (gain > 0.22) {
+        rival.totalPoints += 2;
+        rival.runs = (rival.runs || 0) + 2;
+      } else {
+        rival.totalPoints += 1;
+        rival.runs = (rival.runs || 0) + 1;
+      }
+      rival.matchesPlayed = (rival.matchesPlayed || 0) + 1;
+    });
   };
 
   const saveResultToLocal = (user, mode, outcome) => {
@@ -157,6 +183,9 @@
     const circle = document.querySelector(mode === 'bat' ? '.batting-circle' : '.bowling-circle');
     if (!circle) return;
 
+    const crowd = circle.querySelector('.crowd-overlay');
+    if (crowd) crowd.classList.add('animate-crowd-flash');
+
     const isNegative = outcome.type === 'negative';
     const overlay = document.createElement('div');
     overlay.className = `result-overlay ${isNegative ? 'negative' : ''} animate-result-burst`;
@@ -168,21 +197,17 @@
     const floating = document.createElement('div');
     floating.className = `floating-score ${isNegative ? 'negative' : ''} animate-floating-score`;
     floating.textContent = mode === 'bat'
-      ? (outcome.label === 'Dot' ? 'Mistimed' : `${outcome.label} Runs`)
-      : (['Bowled', 'Catch', 'LBW'].includes(outcome.label) ? 'Wicket Chance' : `Conceded ${outcome.label.replace('-', '')}`);
+      ? `${outcome.label} Run${outcome.label === '1' ? '' : 's'}`
+      : (['Bowled', 'Catch', 'LBW'].includes(outcome.label) ? outcome.label : `${outcome.label} pts`);
 
-    const crowd = document.createElement('div');
-    crowd.className = 'crowd-overlay animate-crowd-flash';
-
-    circle.appendChild(crowd);
     circle.appendChild(overlay);
     circle.appendChild(floating);
 
-    await new Promise((resolve) => setTimeout(resolve, 1100));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    crowd.remove();
     overlay.remove();
     floating.remove();
+    if (crowd) crowd.classList.remove('animate-crowd-flash');
   };
 
   const showResult = (mode, outcome, finalPoints) => {
@@ -192,7 +217,7 @@
       <div class="animate-reveal">
         <div class="outcome ${tone}">${outcome.label}</div>
         <h2>${sign}${finalPoints} points</h2>
-        <p>${isBoostTime() ? 'Match Boost doubled it.' : 'Standard scoring applied.'}</p>
+        <p>${isBoostTime() ? 'Match Boost doubled it.' : 'Leaderboard updated live.'}</p>
       </div>
     `;
     navigate('dashboard');
@@ -231,6 +256,8 @@
         console.error(error);
       }
     }
+
+    simulateRivalsTick();
 
     if (mode === 'bat') {
       if (outcome.label === '6') {
@@ -387,9 +414,23 @@
     toast('Logged out');
   });
 
+  const bootSplash = () => {
+    if (!els.splash) return;
+    setTimeout(() => {
+      els.splash.classList.add('hide');
+    }, 1400);
+  };
+
   updateBoostPills();
   setArenaDefault();
   refresh();
   navigate(state.currentUserId ? 'dashboard' : 'home');
+  bootSplash();
+
+  setInterval(() => {
+    simulateRivalsTick();
+    refresh();
+  }, 9000);
+
   setInterval(updateBoostPills, 30000);
 })();

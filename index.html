@@ -17,15 +17,25 @@
   <link rel="stylesheet" href="./css/animations.css" />
 </head>
 <body>
+  <!-- SPLASH -->
+  <div class="splash-screen" id="splash-screen">
+    <div class="splash-inner">
+      <img src="./assets/logos/bwl-logo.png" alt="Break Wali League" class="splash-logo" />
+      <div class="splash-glow"></div>
+    </div>
+  </div>
+
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand-wrap">
-        <div class="brand-logo">BWL</div>
-        <div>
-          <p class="eyebrow">IPL Ultimate Arena</p>
-          <h1 id="league-title">Break Wali League</h1>
-        </div>
+      <div class="brand-wrap brand-wrap-logo">
+        <img
+          src="./assets/logos/bwl-logo.png"
+          alt="Break Wali League"
+          class="site-logo"
+          id="league-title"
+        />
       </div>
+
       <div class="boost-pill" id="global-boost-pill">Match Boost checking...</div>
     </header>
 
@@ -33,11 +43,11 @@
       <section class="screen active" id="screen-home">
         <div class="hero-card glass-card">
           <div class="hero-copy">
-            <span class="tag">Live Tournament Mode</span>
-            <h2>Play hard. Score fast. Climb higher.</h2>
+            <span class="tag">Ultimate Arena 5.0</span>
+            <h2>Play fast. Score every ball. Climb live.</h2>
             <p>
               Enter the arena, create your player identity, choose batting or bowling,
-              and compete for points, stats, and weekly rewards.
+              and compete in a live moving leaderboard where every play updates instantly.
             </p>
           </div>
 
@@ -157,7 +167,7 @@
               <div class="section-head row">
                 <div>
                   <p class="eyebrow">Playing Dashboard</p>
-                  <h3>Enter the arena</h3>
+                  <h3>Live Arena Feed</h3>
                 </div>
                 <div class="boost-pill" id="arena-boost-pill">Match Boost checking...</div>
               </div>
@@ -165,7 +175,7 @@
               <div class="arena" id="arena">
                 <div>
                   <h2>Choose your mode</h2>
-                  <p>Step into batting or bowling and make every play count.</p>
+                  <p>Every play updates your score instantly and can shift the live leaderboard.</p>
                 </div>
               </div>
             </div>
@@ -199,7 +209,7 @@
           <div class="section-head row">
             <div>
               <p class="eyebrow">Batting Mode</p>
-              <h3>Strike the shot</h3>
+              <h3>Strike every ball</h3>
             </div>
             <button class="btn btn-secondary small" data-nav="dashboard">Exit</button>
           </div>
@@ -213,13 +223,15 @@
             </div>
 
             <div class="stadium-circle batting-circle">
+              <div class="crowd-overlay"></div>
+
               <div class="zone-ring">
                 <div class="zone zone-six">6</div>
                 <div class="zone zone-four">4</div>
                 <div class="zone zone-three">3</div>
                 <div class="zone zone-two">2</div>
                 <div class="zone zone-one">1</div>
-                <div class="zone zone-dot">DOT</div>
+                <div class="zone zone-soft">1</div>
               </div>
 
               <div class="long-pitch">
@@ -278,10 +290,12 @@
             </div>
 
             <div class="stadium-circle bowling-circle">
+              <div class="crowd-overlay"></div>
+
               <div class="zone-ring">
-                <div class="zone zone-wicket">WK</div>
-                <div class="zone zone-catch">CT</div>
-                <div class="zone zone-lbw">LBW</div>
+                <div class="zone zone-wicket">12</div>
+                <div class="zone zone-catch">8</div>
+                <div class="zone zone-lbw">4</div>
                 <div class="zone zone-minus-one">-1</div>
                 <div class="zone zone-minus-four">-4</div>
                 <div class="zone zone-minus-six">-6</div>
@@ -347,25 +361,6 @@
         </div>
       </section>
 
-      <section class="screen" id="screen-prizes">
-        <div class="glass-card full-screen-card">
-          <div class="section-head row">
-            <div>
-              <p class="eyebrow">Prize Section</p>
-              <h3>Weekly rewards</h3>
-            </div>
-            <button class="btn btn-secondary small" data-nav="dashboard">Back</button>
-          </div>
-
-          <div class="prize-grid">
-            <div class="stat-card"><span>Top Batter</span><strong>Weekly Prize</strong></div>
-            <div class="stat-card"><span>Most Sixes</span><strong>Weekly Prize</strong></div>
-            <div class="stat-card"><span>Top Wicket Taker</span><strong>Weekly Prize</strong></div>
-            <div class="stat-card"><span>All-Round Impact</span><strong>Weekly Prize</strong></div>
-          </div>
-        </div>
-      </section>
-
       <section class="screen" id="screen-profile">
         <div class="glass-card full-screen-card">
           <div class="section-head row">
@@ -380,7 +375,7 @@
             <div class="stat-card"><span>Runs</span><strong id="profile-runs-full">0</strong></div>
             <div class="stat-card"><span>Wickets</span><strong id="profile-wickets-full">0</strong></div>
             <div class="stat-card"><span>Sixes</span><strong id="profile-sixes-full">0</strong></div>
-            <div class="stat-card"><span>Dot Balls</span><strong id="profile-dots-full">0</strong></div>
+            <div class="stat-card"><span>Balls Played</span><strong id="profile-dots-full">0</strong></div>
           </div>
 
           <div class="action-row compact">
@@ -402,12 +397,11 @@
         </div>
 
         <ul class="rules-list">
-          <li>Login or create your profile to enter the league.</li>
-          <li>Choose batting or bowling from the dashboard.</li>
-          <li>Each play adds to your points and stats.</li>
+          <li>Every ball gives you a result.</li>
+          <li>Batting always gives you runs.</li>
+          <li>Bowling always gives you points or deduction.</li>
+          <li>Leaderboard updates live after every play.</li>
           <li>Points double during Match Boost hours.</li>
-          <li>Top points win the main leaderboard.</li>
-          <li>Special stat leaders also win prizes.</li>
         </ul>
       </div>
     </div>

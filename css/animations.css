@@ -12,26 +12,20 @@
 @keyframes stadiumPulse {
   0% {
     box-shadow:
-      inset 0 0 0 rgba(53,208,127,0.04),
-      0 0 0 rgba(53,208,127,0.04);
+      inset 0 0 0 rgba(31,124,255,0.04),
+      0 0 0 rgba(31,124,255,0.04);
   }
   100% {
     box-shadow:
-      inset 0 0 36px rgba(53,208,127,0.08),
-      0 0 36px rgba(53,208,127,0.08);
+      inset 0 0 36px rgba(31,124,255,0.08),
+      0 0 36px rgba(31,124,255,0.08);
   }
 }
 
 @keyframes crowdFlash {
-  0% {
-    opacity: 0;
-  }
-  30% {
-    opacity: 0.34;
-  }
-  100% {
-    opacity: 0;
-  }
+  0% { opacity: 0; }
+  30% { opacity: 0.36; }
+  100% { opacity: 0; }
 }
 
 @keyframes resultBurst {
@@ -63,6 +57,17 @@
   }
 }
 
+@keyframes splashPop {
+  0% {
+    transform: scale(0.86);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .animate-reveal {
   animation: popReveal 0.24s ease;
 }
@@ -83,10 +88,14 @@
   animation: floatingScore 0.8s ease-out forwards;
 }
 
+.splash-logo {
+  animation: splashPop 0.7s ease-out forwards;
+}
+
 .zone-hit {
   box-shadow:
     0 0 0 1px rgba(255,255,255,0.06),
-    0 0 24px rgba(53,208,127,0.32),
+    0 0 24px rgba(31,124,255,0.34),
     inset 0 0 18px rgba(255,255,255,0.08);
   transform: scale(1.08);
   transition: 0.18s ease;
@@ -95,7 +104,7 @@
 .zone-hit-negative {
   box-shadow:
     0 0 0 1px rgba(255,255,255,0.06),
-    0 0 24px rgba(255,107,107,0.28),
+    0 0 24px rgba(255,77,87,0.28),
     inset 0 0 18px rgba(255,255,255,0.06);
   transform: scale(1.08);
   transition: 0.18s ease;
@@ -104,11 +113,11 @@
 .ball-impact {
   box-shadow:
     0 0 28px rgba(255,255,255,0.34),
-    0 0 36px rgba(53,208,127,0.22);
+    0 0 36px rgba(31,124,255,0.24);
 }
 
 .ball-impact-negative {
   box-shadow:
     0 0 28px rgba(255,255,255,0.22),
-    0 0 30px rgba(255,107,107,0.18);
+    0 0 30px rgba(255,77,87,0.18);
 }
