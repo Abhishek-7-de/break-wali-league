@@ -58,7 +58,7 @@
     els.toast.textContent = message;
     els.toast.classList.add('show');
     clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+    toast._timer = setTimeout(() => els.toast.classList.remove('show'), 1800);
   };
 
   const navigate = (name) => {
@@ -203,7 +203,7 @@
     circle.appendChild(overlay);
     circle.appendChild(floating);
 
-    await new Promise((resolve) => setTimeout(resolve, 950));
+    await new Promise((resolve) => setTimeout(resolve, 700));
 
     overlay.remove();
     floating.remove();
