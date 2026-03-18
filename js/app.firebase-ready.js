@@ -139,14 +139,14 @@
     const movers = rivals.sort(() => Math.random() - 0.5).slice(0, Math.min(2, rivals.length));
     movers.forEach((rival) => {
       const gain = Math.random();
-      if (gain > 0.7) {
+      if (gain > 0.78) {
         rival.totalPoints += 6;
         rival.runs = (rival.runs || 0) + 6;
         rival.sixes = (rival.sixes || 0) + 1;
-      } else if (gain > 0.45) {
+      } else if (gain > 0.55) {
         rival.totalPoints += 4;
         rival.runs = (rival.runs || 0) + 4;
-      } else if (gain > 0.22) {
+      } else if (gain > 0.3) {
         rival.totalPoints += 2;
         rival.runs = (rival.runs || 0) + 2;
       } else {
@@ -166,7 +166,7 @@
     user.runs = (user.runs || 0) + (outcome.runs || 0);
     user.wickets = (user.wickets || 0) + (outcome.wickets || 0);
     user.sixes = (user.sixes || 0) + (outcome.sixes || 0);
-    user.dots = (user.dots || 0) + (outcome.dots || 0);
+    user.dots = (user.dots || 0) + 1;
     user.history = user.history || [];
     user.history.push({
       mode,
@@ -198,12 +198,12 @@
     floating.className = `floating-score ${isNegative ? 'negative' : ''} animate-floating-score`;
     floating.textContent = mode === 'bat'
       ? `${outcome.label} Run${outcome.label === '1' ? '' : 's'}`
-      : (['Bowled', 'Catch', 'LBW'].includes(outcome.label) ? outcome.label : `${outcome.label} pts`);
+      : (['Bowled', 'Catch', 'LBW'].includes(outcome.label) ? outcome.label : outcome.label);
 
     circle.appendChild(overlay);
     circle.appendChild(floating);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 950));
 
     overlay.remove();
     floating.remove();
@@ -418,7 +418,7 @@
     if (!els.splash) return;
     setTimeout(() => {
       els.splash.classList.add('hide');
-    }, 1400);
+    }, 1750);
   };
 
   updateBoostPills();

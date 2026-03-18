@@ -6,31 +6,31 @@ window.CBCL_BOWLING = (() => {
 
   const zoneMap = [
     {
-      min: 88,
+      min: 84,
       outcome: { label: 'Bowled', points: 12, type: 'positive', wickets: 1 },
       target: { top: '10%', left: '50%' },
       zoneSelector: '.zone-wicket'
     },
     {
-      min: 68,
+      min: 64,
       outcome: { label: 'Catch', points: 8, type: 'positive', wickets: 1 },
       target: { top: '22%', left: '82%' },
       zoneSelector: '.zone-catch'
     },
     {
-      min: 50,
+      min: 46,
       outcome: { label: 'LBW', points: 4, type: 'positive', wickets: 1 },
       target: { top: '80%', left: '82%' },
       zoneSelector: '.zone-lbw'
     },
     {
-      min: 34,
+      min: 28,
       outcome: { label: '-1', points: -1, type: 'negative' },
       target: { top: '91%', left: '50%' },
       zoneSelector: '.zone-minus-one'
     },
     {
-      min: 18,
+      min: 12,
       outcome: { label: '-4', points: -4, type: 'negative' },
       target: { top: '50%', left: '90%' },
       zoneSelector: '.zone-minus-four'
@@ -97,19 +97,20 @@ window.CBCL_BOWLING = (() => {
     if (speedInterval) clearInterval(speedInterval);
 
     speedInterval = setInterval(() => {
-      speedValue += speedDirection * 3.8;
+      speedValue += speedDirection * 4.5;
 
       if (speedValue >= 100) {
         speedValue = 100;
         speedDirection = -1;
       }
+
       if (speedValue <= 0) {
         speedValue = 0;
         speedDirection = 1;
       }
 
       pointer.style.left = `${speedValue}%`;
-    }, 14);
+    }, 12);
   };
 
   const startRunUp = async () => {
@@ -138,10 +139,8 @@ window.CBCL_BOWLING = (() => {
       speedInterval = null;
     }
 
-    const speedScore = speedValue;
-    const selection = zoneMap.find((item) => speedScore >= item.min);
-
-    if (!selection) return null;
+    const speedScore = Math.max(0, speedValue);
+    const selection = zoneMap.find((item) => speedScore >= item.min) || zoneMap[zoneMap.length - 1];
 
     if (releaseBtn) releaseBtn.disabled = true;
     if (status) status.textContent = `Delivery fired at ${Math.round(speedScore)}%`;
@@ -158,11 +157,11 @@ window.CBCL_BOWLING = (() => {
         { top: '32%', left: '50%', transform: 'translateX(-50%) scale(1.03)' },
         { top: '56%', left: '50%', transform: 'translateX(-50%) scale(1.06)' },
         { top: '72%', left: '50%', transform: 'translateX(-50%) scale(1.08)' },
-        { top: selection.target.top, left: selection.target.left, transform: 'translate(-50%, -50%) scale(1.14)' }
+        { top: selection.target.top, left: selection.target.left, transform: 'translate(-50%, -50%) scale(1.15)' }
       ];
 
       ball.animate(frames, {
-        duration: 440,
+        duration: 430,
         easing: 'ease-out',
         fill: 'forwards'
       });
@@ -174,7 +173,7 @@ window.CBCL_BOWLING = (() => {
       }
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 480));
+    await new Promise((resolve) => setTimeout(resolve, 470));
 
     pulseStage(false);
     inPlay = false;
