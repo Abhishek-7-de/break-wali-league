@@ -4,425 +4,1988 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Break Wali League</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #070A10;
+      --bg2: #0B1220;
+      --surface: rgba(255,255,255,0.04);
+      --surface2: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --border-hot: rgba(255,200,0,0.25);
+      --text: #F0F4FF;
+      --muted: #7A8FAA;
+      --gold: #FFD700;
+      --gold2: #FF9F00;
+      --red: #FF3B4E;
+      --green: #00E676;
+      --blue: #1A7EFF;
+      --blue2: #0A3D8A;
+      --r-xl: 28px;
+      --r-lg: 20px;
+      --r-md: 14px;
+    }
 
-  <link rel="stylesheet" href="./css/styles.css" />
-  <link rel="stylesheet" href="./css/mobile.css" />
-  <link rel="stylesheet" href="./css/animations.css" />
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* BG TEXTURE */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(26,126,255,0.14), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 60%, rgba(255,215,0,0.06), transparent),
+        radial-gradient(ellipse 50% 60% at 0% 80%, rgba(255,59,78,0.07), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.012) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.012) 40px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* SPLASH */
+    #splash {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    #splash.hide { opacity: 0; visibility: hidden; }
+
+    .splash-logo-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(42px, 12vw, 88px);
+      letter-spacing: 0.06em;
+      background: linear-gradient(135deg, #FFD700 0%, #FF9F00 40%, #FF3B4E 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: splashPulse 1.2s ease-in-out infinite alternate;
+    }
+
+    .splash-sub {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .splash-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .splash-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: dotPulse 1s ease-in-out infinite;
+    }
+
+    .splash-dot:nth-child(2) { animation-delay: 0.2s; background: var(--gold2); }
+    .splash-dot:nth-child(3) { animation-delay: 0.4s; background: var(--red); }
+
+    @keyframes splashPulse {
+      from { filter: brightness(1); }
+      to { filter: brightness(1.3) drop-shadow(0 0 30px rgba(255,215,0,0.4)); }
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* APP SHELL */
+    #app {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px 14px 100px;
+    }
+
+    /* TOPBAR */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding: 12px 18px;
+      background: rgba(11,18,32,0.85);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      letter-spacing: 0.12em;
+      background: linear-gradient(90deg, var(--gold), var(--gold2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      cursor: pointer;
+    }
+
+    .boost-badge {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255,159,0,0.12);
+      border: 1px solid rgba(255,159,0,0.28);
+      color: #FFB800;
+    }
+
+    .boost-badge.live {
+      background: rgba(255,59,78,0.12);
+      border-color: rgba(255,59,78,0.3);
+      color: #FF6B78;
+      animation: boostGlow 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes boostGlow {
+      from { box-shadow: none; }
+      to { box-shadow: 0 0 14px rgba(255,59,78,0.3); }
+    }
+
+    /* SCREENS */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* GLASS CARD */
+    .card {
+      background: linear-gradient(160deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    /* EYEBROW */
+    .eyebrow {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* HOME SCREEN */
+    .home-hero {
+      padding: 48px 36px;
+      display: grid;
+      gap: 28px;
+    }
+
+    .hero-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(48px, 10vw, 90px);
+      line-height: 0.92;
+      letter-spacing: 0.04em;
+      background: linear-gradient(130deg, #fff 0%, var(--gold) 55%, var(--red) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+      max-width: 560px;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .hero-stat-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .hero-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hero-stat strong {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      color: var(--gold);
+      letter-spacing: 0.04em;
+    }
+
+    .hero-stat span {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    /* BUTTONS */
+    .btn {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: none;
+      border-radius: var(--r-md);
+      padding: 13px 22px;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+      color: #1a0f00;
+      box-shadow: 0 4px 20px rgba(255,180,0,0.32);
+    }
+
+    .btn-gold:hover { box-shadow: 0 6px 28px rgba(255,180,0,0.48); }
+
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover { background: rgba(255,255,255,0.10); }
+
+    .btn-blue {
+      background: linear-gradient(135deg, var(--blue), var(--blue2));
+      color: #ddf;
+      box-shadow: 0 4px 18px rgba(26,126,255,0.28);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--red), #c2002a);
+      color: #fff;
+    }
+
+    .btn:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .btn-sm { padding: 9px 16px; font-size: 13px; }
+
+    /* AUTH SCREEN */
+    .auth-wrap {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 32px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .auth-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 38px;
+      letter-spacing: 0.06em;
+      color: var(--gold);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .form-input {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      padding: 13px 16px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    .form-input:focus {
+      border-color: rgba(26,126,255,0.5);
+      box-shadow: 0 0 0 3px rgba(26,126,255,0.12);
+    }
+
+    .otp-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    /* OTP BOX */
+    .otp-display {
+      padding: 14px 18px;
+      border-radius: var(--r-md);
+      background: rgba(26,126,255,0.09);
+      border: 1px solid rgba(26,126,255,0.22);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 0.22em;
+      color: var(--gold);
+      text-align: center;
+      display: none;
+    }
+
+    .otp-display.show { display: block; }
+
+    .otp-hint {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .stay-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stay-row input { width: auto; accent-color: var(--gold); }
+
+    .stay-row label { font-size: 14px; color: var(--muted); cursor: pointer; }
+
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* DASHBOARD */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 18px;
+    }
+
+    .player-card-inner { padding: 24px; display: grid; gap: 18px; }
+
+    .player-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .avatar {
+      width: 68px;
+      height: 68px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #102D5E, var(--blue));
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 0.08em;
+      color: #d0e8ff;
+      border: 1px solid rgba(26,126,255,0.2);
+      box-shadow: 0 0 20px rgba(26,126,255,0.12);
+      flex-shrink: 0;
+    }
+
+    .player-name-wrap strong {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      display: block;
+    }
+
+    .player-name-wrap span {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .stat-tile {
+      padding: 14px;
+      border-radius: var(--r-md);
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .stat-tile span {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+    }
+
+    .stat-tile strong {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 0.06em;
+      color: var(--gold);
+    }
+
+    .mode-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mode-btn {
+      padding: 20px 12px;
+      border-radius: var(--r-lg);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .mode-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,215,0,0.25);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .mode-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .dash-main { display: grid; gap: 18px; }
+
+    .card-inner { padding: 22px; }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-head h3 {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    /* LEADERBOARD */
+    .lb-list { display: grid; gap: 8px; }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 46px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--r-md);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .lb-row.me {
+      background: rgba(26,126,255,0.08);
+      border-color: rgba(26,126,255,0.2);
+    }
+
+    .rank-num {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 17px;
+      letter-spacing: 0.05em;
+      background: var(--surface2);
+      color: var(--muted);
+    }
+
+    .rank-num.r1 { background: linear-gradient(135deg, #D4AF37, #F5E04A); color: #1a1200; }
+    .rank-num.r2 { background: linear-gradient(135deg, #888, #bbb); color: #111; }
+    .rank-num.r3 { background: linear-gradient(135deg, #B87333, #e8975a); color: #1a0800; }
+
+    .lb-name strong { display: block; font-size: 14px; font-weight: 600; }
+    .lb-name span { font-size: 12px; color: var(--muted); }
+
+    .lb-pts {
+      text-align: right;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 0.06em;
+      color: var(--gold);
+    }
+
+    .lb-pts span { display: block; font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--muted); letter-spacing: 0; }
+
+    /* GAMEPLAY */
+    .gameplay-wrap {
+      padding: 20px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .gameplay-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .gameplay-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 0.08em;
+    }
+
+    /* SCOREBOARD */
+    .scoreboard {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .ball-result {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 14px;
+      letter-spacing: 0.03em;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .ball-result.six { background: linear-gradient(135deg, #FFD700, #FF9F00); color: #1a0f00; border-color: transparent; }
+    .ball-result.four { background: linear-gradient(135deg, #1A7EFF, #0A3D8A); color: #fff; border-color: transparent; }
+    .ball-result.runs { background: rgba(255,255,255,0.12); color: var(--text); }
+    .ball-result.wicket { background: linear-gradient(135deg, #FF3B4E, #A0001A); color: #fff; border-color: transparent; }
+    .ball-result.neg { background: rgba(255,59,78,0.15); color: var(--red); }
+    .ball-result.new-entry { animation: ballPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+    @keyframes ballPop {
+      0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+      70% { transform: scale(1.2) rotate(5deg); }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+
+    /* CRICKET FIELD */
+    .field-wrap {
+      position: relative;
+      width: min(500px, 100%);
+      aspect-ratio: 1;
+      margin: 0 auto;
+    }
+
+    .field-circle {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(10,50,110,0.45) 0%, rgba(5,15,30,0.92) 65%, rgba(3,7,14,1) 100%);
+      border: 2px solid rgba(26,126,255,0.15);
+      box-shadow:
+        inset 0 0 60px rgba(26,126,255,0.06),
+        0 0 50px rgba(26,126,255,0.06);
+      overflow: hidden;
+    }
+
+    /* Outer circle line */
+    .field-circle::before {
+      content: '';
+      position: absolute;
+      inset: 8%;
+      border-radius: 50%;
+      border: 1px dashed rgba(255,255,255,0.07);
+      pointer-events: none;
+    }
+
+    /* Inner 30-yard */
+    .field-circle::after {
+      content: '';
+      position: absolute;
+      inset: 30%;
+      border-radius: 50%;
+      border: 1px dashed rgba(255,255,255,0.06);
+      pointer-events: none;
+    }
+
+    /* ZONES */
+    .zone-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .zone {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      transition: all 0.25s ease;
+    }
+
+    /* batting zones */
+    .z-six   { top: 6%; left: 50%; transform: translateX(-50%); background: rgba(255,215,0,0.18); color: #FFD700; }
+    .z-four  { top: 18%; right: 10%; background: rgba(26,126,255,0.18); color: #7dbcff; }
+    .z-three { top: 50%; right: 5%; transform: translateY(-50%); background: rgba(26,126,255,0.14); color: #7dbcff; }
+    .z-two   { bottom: 16%; right: 10%; background: rgba(26,126,255,0.12); color: #7dbcff; }
+    .z-one-a { bottom: 7%; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.07); color: var(--muted); }
+    .z-one-b { top: 50%; left: 5%; transform: translateY(-50%); background: rgba(255,255,255,0.06); color: var(--muted); }
+
+    /* bowling zones */
+    .z-bowl   { top: 6%; left: 50%; transform: translateX(-50%); background: rgba(255,215,0,0.18); color: #FFD700; }
+    .z-catch  { top: 18%; right: 10%; background: rgba(26,126,255,0.18); color: #7dbcff; }
+    .z-lbw    { bottom: 16%; right: 10%; background: rgba(26,126,255,0.12); color: #7dbcff; }
+    .z-m1     { bottom: 7%; left: 50%; transform: translateX(-50%); background: rgba(255,59,78,0.10); color: var(--red); }
+    .z-m4     { top: 50%; right: 5%; transform: translateY(-50%); background: rgba(255,59,78,0.14); color: var(--red); }
+    .z-m6     { top: 50%; left: 5%; transform: translateY(-50%); background: rgba(255,59,78,0.20); color: #ff6b7a; }
+
+    .zone.hit {
+      transform: scale(1.25) !important;
+      box-shadow: 0 0 24px currentColor;
+      border-color: currentColor;
+      animation: zoneHit 0.6s ease forwards;
+    }
+
+    @keyframes zoneHit {
+      0% { transform: scale(1.4) !important; }
+      60% { transform: scale(1.3) !important; }
+      100% { transform: scale(1.22) !important; }
+    }
+
+    /* PITCH */
+    .pitch {
+      position: absolute;
+      left: 44%;
+      right: 44%;
+      top: 12%;
+      bottom: 12%;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #7A5530 0%, #A8773E 45%, #7A5530 100%);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    .pitch-crease {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      height: 2px;
+      background: rgba(255,255,255,0.7);
+    }
+
+    .pitch-crease.top { top: 14%; }
+    .pitch-crease.bottom { bottom: 14%; }
+
+    /* PLAYERS */
+    .player {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+    }
+
+    .player-bowler { top: 4%; }
+    .player-batter { bottom: 4%; }
+
+    .p-head {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--text);
+      margin: 0 auto;
+      box-shadow: 0 0 6px rgba(255,255,255,0.3);
+    }
+
+    .p-body {
+      width: 4px;
+      height: 20px;
+      background: var(--text);
+      margin: 0 auto;
+      border-radius: 999px;
+    }
+
+    .p-bat {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      width: 3px;
+      height: 16px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #fff, #FFD700);
+      transform: rotate(-30deg);
+    }
+
+    /* BALL */
+    .game-ball {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff, #FF5C65 60%);
+      box-shadow: 0 0 12px rgba(255,80,100,0.4);
+      z-index: 4;
+      left: 50%;
+      top: 13%;
+      transform: translateX(-50%);
+      transition: none;
+    }
+
+    /* RESULT OVERLAY */
+    .result-pop {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .result-pop.show { opacity: 1; }
+
+    .result-inner {
+      text-align: center;
+      padding: 18px 28px;
+      border-radius: 22px;
+      background: rgba(5,12,25,0.88);
+      border: 1px solid rgba(255,215,0,0.25);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 40px rgba(255,200,0,0.12);
+      transform: scale(0.8);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .result-pop.show .result-inner { transform: scale(1); }
+
+    .result-big {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 58px;
+      line-height: 1;
+      letter-spacing: 0.06em;
+    }
+
+    .result-pts {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* TIMING METER */
+    .meter-wrap {
+      display: grid;
+      gap: 8px;
+    }
+
+    .meter-label {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .meter-track {
+      position: relative;
+      height: 20px;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(90deg,
+        rgba(255,59,78,0.7) 0%,
+        rgba(255,140,0,0.75) 22%,
+        rgba(255,215,0,0.8) 42%,
+        rgba(0,230,118,0.85) 50%,
+        rgba(255,215,0,0.8) 58%,
+        rgba(255,140,0,0.75) 78%,
+        rgba(255,59,78,0.7) 100%
+      );
+    }
+
+    .meter-sweet {
+      position: absolute;
+      left: 43%;
+      width: 14%;
+      inset-block: 0;
+      background: rgba(255,255,255,0.22);
+      border-left: 1px solid rgba(255,255,255,0.35);
+      border-right: 1px solid rgba(255,255,255,0.35);
+    }
+
+    .meter-needle {
+      position: absolute;
+      top: -2px;
+      width: 10px;
+      height: 24px;
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(255,255,255,0.5);
+      left: 0%;
+      transform: translateX(-50%);
+      transition: none;
+    }
+
+    /* GAMEPLAY ACTIONS */
+    .play-actions {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+    }
+
+    /* INSTRUCTION TEXT */
+    .play-hint {
+      text-align: center;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--gold);
+      min-height: 22px;
+    }
+
+    /* TOAST */
+    #toast {
+      position: fixed;
+      bottom: 90px;
+      right: 18px;
+      padding: 12px 18px;
+      border-radius: 14px;
+      background: rgba(8,14,28,0.96);
+      border: 1px solid var(--border);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+      font-size: 14px;
+      color: var(--text);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.22s, transform 0.22s;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* BOTTOM NAV */
+    .bottom-nav {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(700px, calc(100% - 24px));
+      padding: 7px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      border-radius: 22px;
+      background: rgba(8,14,26,0.95);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      z-index: 50;
+    }
+
+    .nav-tab {
+      min-height: 44px;
+      border: 0;
+      border-radius: 16px;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.18s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .nav-tab .nav-icon { font-size: 16px; line-height: 1; }
+
+    .nav-tab.active {
+      background: rgba(26,126,255,0.14);
+      color: #a8d0ff;
+    }
+
+    /* FULL SCREEN CARD */
+    .full-card { padding: 22px; }
+
+    /* PROFILE */
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    /* CROWD FLASH */
+    .crowd-flash {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 2;
+    }
+
+    .crowd-flash.on {
+      animation: crowdFlash 0.5s ease forwards;
+    }
+
+    @keyframes crowdFlash {
+      0% { opacity: 0; background: radial-gradient(circle, rgba(255,200,0,0.4), transparent 60%); }
+      40% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 760px) {
+      .dash-grid { grid-template-columns: 1fr; }
+      .home-hero { padding: 28px 20px; }
+      .auth-wrap { padding: 20px; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    /* Animations */
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: reveal 0.35s ease forwards;
+    }
+  </style>
 </head>
 <body>
-  <div class="splash-screen" id="splash-screen">
-    <div class="splash-inner">
-      <img src="./assets/logos/bwl-logo.png" alt="Break Wali League" class="splash-logo" />
-      <div class="splash-glow"></div>
-    </div>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo-text">BREAK WALI LEAGUE</div>
+  <div class="splash-sub">Ultimate Cricket Arena</div>
+  <div class="splash-dots">
+    <div class="splash-dot"></div>
+    <div class="splash-dot"></div>
+    <div class="splash-dot"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="brand" id="brand">BWL 🏏</div>
+    <div class="boost-badge" id="boost-badge">⏳ Boost 7PM–11:30PM</div>
   </div>
 
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand-wrap brand-wrap-logo">
-        <img
-          src="./assets/logos/bwl-logo.png"
-          alt="Break Wali League"
-          class="site-logo"
-          id="league-title"
-        />
+  <!-- SCREENS -->
+
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="card">
+      <div class="home-hero animate-in">
+        <div>
+          <div class="eyebrow">Ultimate Arena · Season 2025</div>
+          <h1 class="hero-title">PLAY.<br>SCORE.<br>DOMINATE.</h1>
+        </div>
+        <p class="hero-sub">Enter the arena. Face live deliveries. Score on every ball. Watch the leaderboard shift in real-time — every shot, every wicket, instant glory.</p>
+        <div class="hero-btns">
+          <button class="btn btn-gold" onclick="navigate('auth')">Enter the Arena</button>
+          <button class="btn btn-ghost" onclick="navigate('auth')">Log In</button>
+        </div>
+        <div class="hero-stat-row">
+          <div class="hero-stat"><strong id="home-players">12</strong><span>Players Today</span></div>
+          <div class="hero-stat"><strong id="home-balls">341</strong><span>Balls Played</span></div>
+          <div class="hero-stat"><strong id="home-top">6</strong><span>Top Score</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUTH -->
+  <section class="screen" id="screen-auth">
+    <div class="card">
+      <div class="auth-wrap animate-in">
+        <div>
+          <div class="eyebrow">One-time registration</div>
+          <div class="auth-title">ENTER<br>THE LEAGUE</div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">Your Name *</div>
+            <input class="form-input" id="inp-name" type="text" placeholder="Full name" />
+          </div>
+          <div class="form-group">
+            <div class="form-label">Phone Number *</div>
+            <input class="form-input" id="inp-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit number" />
+          </div>
+          <div class="form-group full">
+            <div class="form-label">Nickname (optional)</div>
+            <input class="form-input" id="inp-nick" type="text" placeholder="Arena nickname" />
+          </div>
+        </div>
+
+        <!-- OTP section -->
+        <div class="otp-row">
+          <div class="form-group" style="flex:1">
+            <div class="form-label">OTP *</div>
+            <input class="form-input" id="inp-otp" type="text" inputmode="numeric" maxlength="6" placeholder="Enter OTP" />
+          </div>
+          <button class="btn btn-blue" id="btn-send-otp" style="margin-top:20px">Send OTP</button>
+        </div>
+
+        <div class="otp-display" id="otp-display"></div>
+        <div class="otp-hint" id="otp-hint"></div>
+
+        <div id="recaptcha-container"></div>
+
+        <div class="stay-row">
+          <input type="checkbox" id="stay-in" />
+          <label for="stay-in">Stay logged in</label>
+        </div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap">
+          <button class="btn btn-gold" id="btn-verify" style="flex:1">Verify & Play 🏏</button>
+          <button class="btn btn-ghost btn-sm" id="btn-demo">Demo Mode</button>
+        </div>
+
+        <div class="auth-divider">or</div>
+
+        <button class="btn btn-ghost" onclick="navigate('home')" style="width:100%">← Back to Home</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="screen" id="screen-dashboard">
+    <div class="dash-grid animate-in">
+      <!-- Player card -->
+      <div class="card">
+        <div class="player-card-inner">
+          <div class="player-head">
+            <div class="avatar" id="av-box">BW</div>
+            <div class="player-name-wrap">
+              <strong id="p-name">Player</strong>
+              <span id="p-meta">Welcome back</span>
+            </div>
+          </div>
+          <div class="stats-row">
+            <div class="stat-tile"><span>Points</span><strong id="s-pts">0</strong></div>
+            <div class="stat-tile"><span>Rank</span><strong id="s-rank">#—</strong></div>
+            <div class="stat-tile"><span>Runs</span><strong id="s-runs">0</strong></div>
+            <div class="stat-tile"><span>Wickets</span><strong id="s-wkts">0</strong></div>
+          </div>
+          <div class="mode-btns">
+            <button class="mode-btn" id="btn-bat">
+              <div class="mode-icon">🏏</div>
+              Batting
+            </button>
+            <button class="mode-btn" id="btn-bowl">
+              <div class="mode-icon">⚡</div>
+              Bowling
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div class="boost-pill" id="global-boost-pill">Match Boost checking...</div>
-    </header>
-
-    <main class="screen-stack">
-      <section class="screen active" id="screen-home">
-        <div class="hero-card glass-card">
-          <div class="hero-copy">
-            <span class="tag">Ultimate Arena 5.0</span>
-            <h2>Play fast. Score every ball. Climb live.</h2>
-            <p>
-              Enter the arena, create your player identity, choose batting or bowling,
-              and compete in a live moving leaderboard where every play updates instantly.
-            </p>
-          </div>
-
-          <div class="hero-actions">
-            <button class="btn btn-primary" data-nav="auth">Create Profile</button>
-            <button class="btn btn-secondary" data-nav="auth">Log In</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="screen" id="screen-auth">
-        <div class="glass-card auth-card">
-          <div class="section-head">
-            <p class="eyebrow">One-time registration</p>
-            <h3>Enter the league</h3>
-          </div>
-
-          <div class="form-grid">
-            <label>
-              <span>Name *</span>
-              <input id="name" type="text" placeholder="Your full name" />
-            </label>
-
-            <label>
-              <span>Phone Number *</span>
-              <input
-                id="phone"
-                type="tel"
-                inputmode="numeric"
-                maxlength="10"
-                placeholder="10 digit phone number"
-              />
-            </label>
-
-            <label class="full-span">
-              <span>Nickname</span>
-              <input id="nickname" type="text" placeholder="Optional nickname" />
-            </label>
-          </div>
-
-          <label class="stay-logged">
-            <input type="checkbox" id="stay-logged-in" />
-            <span>Stay logged in</span>
-          </label>
-
-          <div class="otp-actions">
-            <button class="btn btn-accent" id="send-otp-btn">Send OTP</button>
-            <button class="btn btn-secondary" id="demo-login-btn">Load Demo Player</button>
-          </div>
-
-          <label class="otp-field">
-            <span>OTP *</span>
-            <input id="otp" type="text" inputmode="numeric" maxlength="6" placeholder="Enter OTP" />
-          </label>
-
-          <div id="recaptcha-container" class="recaptcha-slot"></div>
-          <div class="demo-otp hidden" id="otp-preview"></div>
-
-          <div class="action-row">
-            <button class="btn btn-primary" id="verify-btn">Verify & Continue</button>
-            <button class="btn btn-secondary" data-nav="home">Back</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="screen" id="screen-dashboard">
-        <div class="dashboard-grid">
-          <div class="glass-card player-card">
-            <div class="player-head">
-              <div class="avatar" id="avatar-box">BW</div>
+      <!-- Right column -->
+      <div class="dash-main">
+        <!-- Live feed -->
+        <div class="card">
+          <div class="card-inner">
+            <div class="card-head">
               <div>
-                <h3 id="player-name">Player</h3>
-                <p id="player-meta">Welcome to the arena</p>
+                <div class="eyebrow">Arena Feed</div>
+                <h3>Live Scoreboard</h3>
               </div>
+              <div class="boost-badge" id="arena-boost">⏳ 7PM–11:30PM</div>
             </div>
-
-            <div class="stats-grid">
-              <div class="stat-card">
-                <span>Total Points</span>
-                <strong id="stat-points">0</strong>
-              </div>
-              <div class="stat-card">
-                <span>Rank</span>
-                <strong id="stat-rank">#-</strong>
-              </div>
-              <div class="stat-card">
-                <span>Runs</span>
-                <strong id="profile-runs">0</strong>
-              </div>
-              <div class="stat-card">
-                <span>Wickets</span>
-                <strong id="profile-wickets">0</strong>
-              </div>
-            </div>
-
-            <div class="dashboard-actions sticky-bottom-actions">
-              <button class="play-btn batting" id="unlock-batting-btn">
-                <span class="play-icon icon-bat">
-                  <span class="bat-stick"></span>
-                  <span class="bat-blade"></span>
-                </span>
-                <span>Batting</span>
-              </button>
-              <button class="play-btn bowling" id="unlock-bowling-btn">
-                <span class="play-icon icon-ball">
-                  <span class="ball-core"></span>
-                  <span class="ball-seam seam-a"></span>
-                  <span class="ball-seam seam-b"></span>
-                </span>
-                <span>Bowling</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="dashboard-main">
-            <div class="glass-card arena-card">
-              <div class="section-head row">
-                <div>
-                  <p class="eyebrow">Playing Dashboard</p>
-                  <h3>Live Arena Feed</h3>
-                </div>
-                <div class="boost-pill" id="arena-boost-pill">Match Boost checking...</div>
-              </div>
-
-              <div class="arena" id="arena">
-                <div>
-                  <h2>Choose your mode</h2>
-                  <p>Every ball updates your score instantly and can shift the live leaderboard.</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="glass-card leaderboard-card">
-              <div class="section-head row">
-                <div>
-                  <p class="eyebrow">Leaderboard</p>
-                  <h3>Main Points Table</h3>
-                </div>
-                <button class="btn btn-secondary small" data-nav="leaderboard">View All</button>
-              </div>
-              <div class="leaderboard-list" id="leaderboard-preview"></div>
-            </div>
-
-            <div class="glass-card leaderboard-card">
-              <div class="section-head row">
-                <div>
-                  <p class="eyebrow">Stats Boards</p>
-                  <h3>Performance Leaders</h3>
-                </div>
-              </div>
-              <div class="leaderboard-list" id="stats-preview"></div>
-            </div>
+            <div id="arena-msg" style="color:var(--muted); font-size:14px;">Choose Batting or Bowling to start scoring.</div>
           </div>
         </div>
-      </section>
-
-      <section class="screen" id="screen-batting">
-        <div class="glass-card full-screen-card">
-          <div class="section-head row">
-            <div>
-              <p class="eyebrow">Batting Mode</p>
-              <h3>Strike every ball</h3>
-            </div>
-            <button class="btn btn-secondary small" data-nav="dashboard">Exit</button>
-          </div>
-
-          <div class="gameplay-stage batting-stage" id="batting-stage">
-            <div class="stadium-header">
-              <div class="stadium-score-pill">Arena Live</div>
-              <div class="stadium-instruction" id="bat-status-text">
-                Press Start Play to face the delivery
+        <!-- Leaderboard preview -->
+        <div class="card">
+          <div class="card-inner">
+            <div class="card-head">
+              <div>
+                <div class="eyebrow">Points Table</div>
+                <h3>Live Rankings</h3>
               </div>
+              <button class="btn btn-ghost btn-sm" onclick="navigate('leaderboard')">View All</button>
             </div>
-
-            <div class="stadium-circle batting-circle">
-              <div class="crowd-overlay"></div>
-
-              <div class="zone-ring">
-                <div class="zone zone-six">6</div>
-                <div class="zone zone-four">4</div>
-                <div class="zone zone-three">3</div>
-                <div class="zone zone-two">2</div>
-                <div class="zone zone-one">1</div>
-                <div class="zone zone-soft">1</div>
-              </div>
-
-              <div class="long-pitch">
-                <div class="pitch-core">
-                  <div class="pitch-mark bowling-mark"></div>
-                  <div class="pitch-mark batting-mark"></div>
-
-                  <div class="player-bowler">
-                    <span class="figure-head"></span>
-                    <span class="figure-body"></span>
-                  </div>
-
-                  <div class="game-ball" id="bat-ball"></div>
-
-                  <div class="player-batsman">
-                    <span class="figure-head"></span>
-                    <span class="figure-body"></span>
-                    <span class="figure-bat"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="timing-meter-wrap">
-              <div class="timing-label">Shot Timing</div>
-              <div class="timing-meter">
-                <div class="timing-perfect-zone"></div>
-                <div class="timing-pointer" id="timing-pointer"></div>
-              </div>
-            </div>
-
-            <div class="gameplay-actions batting-actions">
-              <button class="btn btn-secondary" id="bat-start-btn">Start Play</button>
-              <button class="btn btn-primary" id="bat-shot-btn" disabled>Take Shot</button>
-            </div>
+            <div class="lb-list" id="lb-preview"></div>
           </div>
         </div>
-      </section>
-
-      <section class="screen" id="screen-bowling">
-        <div class="glass-card full-screen-card">
-          <div class="section-head row">
-            <div>
-              <p class="eyebrow">Bowling Mode</p>
-              <h3>Fire the delivery</h3>
-            </div>
-            <button class="btn btn-secondary small" data-nav="dashboard">Exit</button>
-          </div>
-
-          <div class="gameplay-stage bowling-stage" id="bowling-stage">
-            <div class="stadium-header">
-              <div class="stadium-score-pill">Bowling Arena</div>
-              <div class="stadium-instruction" id="bowl-status-text">
-                Press Start Bowl to build speed
-              </div>
-            </div>
-
-            <div class="stadium-circle bowling-circle">
-              <div class="crowd-overlay"></div>
-
-              <div class="zone-ring">
-                <div class="zone zone-wicket">12</div>
-                <div class="zone zone-catch">8</div>
-                <div class="zone zone-lbw">4</div>
-                <div class="zone zone-minus-one">-1</div>
-                <div class="zone zone-minus-four">-4</div>
-                <div class="zone zone-minus-six">-6</div>
-              </div>
-
-              <div class="long-pitch">
-                <div class="pitch-core">
-                  <div class="pitch-mark bowling-mark"></div>
-                  <div class="pitch-mark batting-mark"></div>
-
-                  <div class="player-bowler">
-                    <span class="figure-head"></span>
-                    <span class="figure-body"></span>
-                  </div>
-
-                  <div class="game-ball" id="bowl-ball"></div>
-
-                  <div class="player-batsman auto-bat">
-                    <span class="figure-head"></span>
-                    <span class="figure-body"></span>
-                    <span class="figure-bat"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="speed-meter-wrap">
-              <div class="timing-label">Bowling Speed</div>
-              <div class="speed-meter">
-                <div class="speed-hot-zone"></div>
-                <div class="speed-pointer" id="speed-pointer"></div>
-              </div>
-            </div>
-
-            <div class="gameplay-actions batting-actions">
-              <button class="btn btn-secondary" id="bowl-start-btn">Start Bowl</button>
-              <button class="btn btn-primary" id="bowl-release-btn" disabled>Release Ball</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="screen" id="screen-leaderboard">
-        <div class="glass-card full-screen-card">
-          <div class="section-head row">
-            <div>
-              <p class="eyebrow">Leaderboard</p>
-              <h3>Main Points Ranking</h3>
-            </div>
-            <button class="btn btn-secondary small" data-nav="dashboard">Back</button>
-          </div>
-
-          <div class="leaderboard-list" id="leaderboard-full"></div>
-
-          <div class="section-head row alt-head">
-            <div>
-              <p class="eyebrow">Stats Rankings</p>
-              <h3>Runs, Wickets, All-Rounders</h3>
-            </div>
-          </div>
-
-          <div class="leaderboard-list" id="leaderboard-stats-full"></div>
-        </div>
-      </section>
-
-      <section class="screen" id="screen-profile">
-        <div class="glass-card full-screen-card">
-          <div class="section-head row">
-            <div>
-              <p class="eyebrow">Player Profile</p>
-              <h3>Your stats</h3>
-            </div>
-            <button class="btn btn-secondary small" data-nav="dashboard">Back</button>
-          </div>
-
-          <div class="profile-stats-grid">
-            <div class="stat-card"><span>Runs</span><strong id="profile-runs-full">0</strong></div>
-            <div class="stat-card"><span>Wickets</span><strong id="profile-wickets-full">0</strong></div>
-            <div class="stat-card"><span>Sixes</span><strong id="profile-sixes-full">0</strong></div>
-            <div class="stat-card"><span>Balls Played</span><strong id="profile-dots-full">0</strong></div>
-          </div>
-
-          <div class="action-row compact">
-            <button class="btn btn-secondary" id="reset-btn">Reset Demo Data</button>
-            <button class="btn btn-secondary" id="logout-btn">Logout</button>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <div class="rules-sheet hidden" id="rules-sheet">
-      <div class="rules-sheet-inner glass-card">
-        <div class="section-head row">
-          <div>
-            <p class="eyebrow">Rules</p>
-            <h3>Break Wali League</h3>
-          </div>
-          <button class="btn btn-secondary small" id="close-rules-btn">Close</button>
-        </div>
-
-        <ul class="rules-list">
-          <li>Every ball gives you a result.</li>
-          <li>Batting always gives you runs.</li>
-          <li>Bowling always gives you points or deduction.</li>
-          <li>Leaderboard updates live after every play.</li>
-          <li>Points double during Match Boost hours.</li>
-        </ul>
       </div>
     </div>
+  </section>
 
-    <nav class="mobile-nav">
-      <button class="mobile-tab active" data-nav="home">Home</button>
-      <button class="mobile-tab" data-nav="dashboard">Play</button>
-      <button class="mobile-tab" data-nav="leaderboard">Leaderboard</button>
-      <button class="mobile-tab" data-nav="profile">Profile</button>
-    </nav>
-  </div>
+  <!-- BATTING -->
+  <section class="screen" id="screen-batting">
+    <div class="card">
+      <div class="gameplay-wrap animate-in">
+        <div class="gameplay-header">
+          <div>
+            <div class="eyebrow">Batting Mode</div>
+            <div class="gameplay-title">TAKE THE SHOT</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('dashboard')">Exit ✕</button>
+        </div>
 
-  <div class="toast" id="toast"></div>
+        <!-- Scoreboard -->
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px">This Over</div>
+          <div class="scoreboard" id="bat-scoreboard"></div>
+        </div>
 
-  <script src="./js/config.js"></script>
-  <script src="./js/storage.js"></script>
-  <script src="./js/gameplay-batting.js"></script>
-  <script src="./js/gameplay-bowling.js"></script>
-  <script src="./js/leaderboard.js"></script>
-  <script src="./js/sounds.js"></script>
-  <script src="./js/auth.firebase-ready.js"></script>
-  <script type="module" src="./js/firebase-service.js"></script>
-  <script type="module" src="./js/app.firebase-ready.js"></script>
+        <!-- Status -->
+        <div class="play-hint" id="bat-hint">Press START to face the delivery</div>
+
+        <!-- Field -->
+        <div class="field-wrap">
+          <div class="field-circle">
+            <div class="crowd-flash" id="bat-crowd"></div>
+            <div class="zone-ring">
+              <div class="zone z-six">6</div>
+              <div class="zone z-four">4</div>
+              <div class="zone z-three">3</div>
+              <div class="zone z-two">2</div>
+              <div class="zone z-one-a">1</div>
+              <div class="zone z-one-b">1</div>
+            </div>
+            <div class="pitch">
+              <div class="pitch-crease top"></div>
+              <div class="pitch-crease bottom"></div>
+              <div class="player player-bowler">
+                <div class="p-head"></div>
+                <div class="p-body"></div>
+              </div>
+              <div class="game-ball" id="bat-ball"></div>
+              <div class="player player-batter" style="position:relative">
+                <div class="p-head"></div>
+                <div class="p-body" style="position:relative"><div class="p-bat"></div></div>
+              </div>
+            </div>
+            <div class="result-pop" id="bat-result-pop">
+              <div class="result-inner">
+                <div class="result-big" id="bat-result-label">6!</div>
+                <div class="result-pts" id="bat-result-pts">+6 pts</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meter -->
+        <div class="meter-wrap">
+          <div class="meter-label">Shot Timing</div>
+          <div class="meter-track">
+            <div class="meter-sweet"></div>
+            <div class="meter-needle" id="bat-needle"></div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="play-actions">
+          <button class="btn btn-ghost" id="bat-start">▶ Start</button>
+          <button class="btn btn-gold" id="bat-shot" disabled>🏏 Take Shot</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOWLING -->
+  <section class="screen" id="screen-bowling">
+    <div class="card">
+      <div class="gameplay-wrap animate-in">
+        <div class="gameplay-header">
+          <div>
+            <div class="eyebrow">Bowling Mode</div>
+            <div class="gameplay-title">FIRE THE DELIVERY</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('dashboard')">Exit ✕</button>
+        </div>
+
+        <!-- Scoreboard -->
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px">This Over</div>
+          <div class="scoreboard" id="bowl-scoreboard"></div>
+        </div>
+
+        <!-- Status -->
+        <div class="play-hint" id="bowl-hint">Press START to begin your run-up</div>
+
+        <!-- Field -->
+        <div class="field-wrap">
+          <div class="field-circle">
+            <div class="crowd-flash" id="bowl-crowd"></div>
+            <div class="zone-ring">
+              <div class="zone z-bowl">W</div>
+              <div class="zone z-catch">C</div>
+              <div class="zone z-lbw">LBW</div>
+              <div class="zone z-m1">-1</div>
+              <div class="zone z-m4">-4</div>
+              <div class="zone z-m6">-6</div>
+            </div>
+            <div class="pitch">
+              <div class="pitch-crease top"></div>
+              <div class="pitch-crease bottom"></div>
+              <div class="player player-bowler">
+                <div class="p-head"></div>
+                <div class="p-body"></div>
+              </div>
+              <div class="game-ball" id="bowl-ball"></div>
+              <div class="player player-batter" style="position:relative">
+                <div class="p-head"></div>
+                <div class="p-body" style="position:relative"><div class="p-bat"></div></div>
+              </div>
+            </div>
+            <div class="result-pop" id="bowl-result-pop">
+              <div class="result-inner">
+                <div class="result-big" id="bowl-result-label">W!</div>
+                <div class="result-pts" id="bowl-result-pts">+12 pts</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meter -->
+        <div class="meter-wrap">
+          <div class="meter-label">Bowling Speed</div>
+          <div class="meter-track">
+            <div class="meter-sweet"></div>
+            <div class="meter-needle" id="bowl-needle"></div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="play-actions">
+          <button class="btn btn-ghost" id="bowl-start">▶ Start</button>
+          <button class="btn btn-gold" id="bowl-release" disabled>⚡ Release</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section class="screen" id="screen-leaderboard">
+    <div class="card">
+      <div class="full-card animate-in">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Live Rankings</div>
+            <h3 style="font-family:'Bebas Neue';font-size:28px;letter-spacing:0.06em">POINTS TABLE</h3>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('dashboard')">← Back</button>
+        </div>
+        <div class="lb-list" id="lb-full"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="screen" id="screen-profile">
+    <div class="card">
+      <div class="full-card animate-in">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Your Stats</div>
+            <h3 style="font-family:'Bebas Neue';font-size:28px;letter-spacing:0.06em">PLAYER PROFILE</h3>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('dashboard')">← Back</button>
+        </div>
+        <div class="profile-grid">
+          <div class="stat-tile"><span>Total Runs</span><strong id="pr-runs">0</strong></div>
+          <div class="stat-tile"><span>Wickets</span><strong id="pr-wkts">0</strong></div>
+          <div class="stat-tile"><span>Sixes</span><strong id="pr-sixes">0</strong></div>
+          <div class="stat-tile"><span>Balls Played</span><strong id="pr-balls">0</strong></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
+          <button class="btn btn-ghost" id="btn-logout">Logout</button>
+          <button class="btn btn-danger" id="btn-reset">Reset Data</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /app -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-tab active" data-nav="home"><span class="nav-icon">🏠</span>Home</button>
+  <button class="nav-tab" data-nav="dashboard"><span class="nav-icon">🏏</span>Play</button>
+  <button class="nav-tab" data-nav="leaderboard"><span class="nav-icon">🏆</span>Ranks</button>
+  <button class="nav-tab" data-nav="profile"><span class="nav-icon">👤</span>Profile</button>
+</nav>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- SCRIPTS -->
+<script>
+// ───────── STORAGE ─────────
+const STORAGE_KEY = 'bwl_v3';
+
+function storageLoad() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    currentUserId: null,
+    stayLoggedIn: false,
+    users: [
+      { id: 'demo_raj', name: 'Rajdeep', nickname: 'RajKing', phone: '9999900000', totalPoints: 144, runs: 89, wickets: 12, sixes: 8, matchesPlayed: 40, history: [] },
+      { id: 'demo_adi', name: 'Aditi',   nickname: 'AdiShot', phone: '9999900001', totalPoints: 112, runs: 70, wickets: 8,  sixes: 5, matchesPlayed: 32, history: [] },
+      { id: 'demo_v',   name: 'Vikram',  nickname: 'VK11',    phone: '9999900002', totalPoints: 98,  runs: 60, wickets: 6,  sixes: 4, matchesPlayed: 28, history: [] },
+      { id: 'demo_p',   name: 'Priya',   nickname: 'P-Star',  phone: '9999900003', totalPoints: 76,  runs: 44, wickets: 5,  sixes: 3, matchesPlayed: 22, history: [] },
+      { id: 'demo_k',   name: 'Kabir',   nickname: 'KabirX',  phone: '9999900004', totalPoints: 54,  runs: 33, wickets: 4,  sixes: 2, matchesPlayed: 16, history: [] }
+    ]
+  };
+}
+
+function storageSave(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ───────── STATE ─────────
+const state = storageLoad();
+
+function currentUser() {
+  return state.users.find(u => u.id === state.currentUserId) || null;
+}
+
+// ───────── NAVIGATE ─────────
+function navigate(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `screen-${name}`));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.nav === name));
+  refresh();
+}
+
+// ───────── TOAST ─────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ───────── BOOST ─────────
+const BOOST_CONFIG = { start: 19*60, end: 23*60+30 };
+
+function isBoost() {
+  const now = new Date(), mins = now.getHours()*60 + now.getMinutes();
+  return mins >= BOOST_CONFIG.start && mins <= BOOST_CONFIG.end;
+}
+
+function updateBoost() {
+  const live = isBoost();
+  const text = live ? '🔥 2× Boost LIVE' : '⏳ Boost 7PM–11:30PM';
+  document.getElementById('boost-badge').textContent = text;
+  document.getElementById('boost-badge').className = 'boost-badge' + (live ? ' live' : '');
+  const ab = document.getElementById('arena-boost');
+  if (ab) { ab.textContent = text; ab.className = 'boost-badge' + (live ? ' live' : ''); }
+}
+
+// ───────── LEADERBOARD ─────────
+function initials(name) {
+  const parts = name.trim().split(' ');
+  return (parts[0][0] + (parts[1]?.[0] || parts[0][1] || '')).toUpperCase();
+}
+
+function renderLB(users, limit = 99) {
+  const sorted = [...users].sort((a,b) => b.totalPoints - a.totalPoints).slice(0, limit);
+  if (!sorted.length) return '<p style="color:var(--muted);font-size:14px">No players yet.</p>';
+  const me = state.currentUserId;
+  return sorted.map((u, i) => {
+    const rClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+    return `<div class="lb-row${u.id === me ? ' me' : ''}">
+      <div class="rank-num ${rClass}">${i+1}</div>
+      <div class="lb-name"><strong>${u.nickname || u.name}</strong><span>${u.runs || 0} runs · ${u.wickets || 0} wkts</span></div>
+      <div class="lb-pts">${u.totalPoints || 0}<span>pts</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ───────── REFRESH UI ─────────
+function refresh() {
+  updateBoost();
+  const u = currentUser();
+  if (!u) return;
+  const sorted = [...state.users].sort((a,b) => b.totalPoints - a.totalPoints);
+  const rank = sorted.findIndex(x => x.id === u.id) + 1;
+
+  document.getElementById('av-box').textContent = initials(u.nickname || u.name);
+  document.getElementById('p-name').textContent = u.nickname || u.name;
+  document.getElementById('p-meta').textContent = `${u.name} · Rank #${rank}`;
+  document.getElementById('s-pts').textContent = u.totalPoints || 0;
+  document.getElementById('s-rank').textContent = `#${rank}`;
+  document.getElementById('s-runs').textContent = u.runs || 0;
+  document.getElementById('s-wkts').textContent = u.wickets || 0;
+
+  document.getElementById('pr-runs').textContent = u.runs || 0;
+  document.getElementById('pr-wkts').textContent = u.wickets || 0;
+  document.getElementById('pr-sixes').textContent = u.sixes || 0;
+  document.getElementById('pr-balls').textContent = u.matchesPlayed || 0;
+
+  const lbPrev = document.getElementById('lb-preview');
+  const lbFull = document.getElementById('lb-full');
+  if (lbPrev) lbPrev.innerHTML = renderLB(state.users, 5);
+  if (lbFull) lbFull.innerHTML = renderLB(state.users);
+
+  storageSave(state);
+}
+
+// ───────── OTP AUTH ─────────
+let pendingOtp = null;
+const PHONE_RE = /^[0-9]{10}$/;
+
+document.getElementById('btn-send-otp').addEventListener('click', async () => {
+  const name = document.getElementById('inp-name').value.trim();
+  const phone = document.getElementById('inp-phone').value.trim();
+  if (!name) { toast('Please enter your name'); return; }
+  if (!PHONE_RE.test(phone)) { toast('Enter a valid 10-digit phone number'); return; }
+
+  // Try Firebase if available
+  if (window.CBCL_FIREBASE) {
+    try {
+      const formatted = phone.startsWith('+') ? phone : `+91${phone}`;
+      await window.CBCL_FIREBASE.sendOtp(formatted, 'recaptcha-container');
+      toast('OTP sent via SMS ✓');
+      document.getElementById('otp-hint').textContent = 'Enter the OTP sent to +91 ' + phone;
+      document.getElementById('otp-display').classList.remove('show');
+      return;
+    } catch (e) {
+      console.warn('Firebase OTP failed, using demo:', e);
+    }
+  }
+
+  // Fallback demo OTP
+  pendingOtp = { phone, code: String(Math.floor(100000 + Math.random() * 900000)) };
+  document.getElementById('otp-display').textContent = pendingOtp.code;
+  document.getElementById('otp-display').classList.add('show');
+  document.getElementById('otp-hint').textContent = '⬆ Your demo OTP (no SMS sent)';
+  toast('Demo OTP generated');
+});
+
+document.getElementById('btn-verify').addEventListener('click', async () => {
+  const name = document.getElementById('inp-name').value.trim();
+  const phone = document.getElementById('inp-phone').value.trim();
+  const nick = document.getElementById('inp-nick').value.trim();
+  const otp = document.getElementById('inp-otp').value.trim();
+  const stay = document.getElementById('stay-in').checked;
+
+  if (!name || !PHONE_RE.test(phone)) { toast('Enter valid name & phone'); return; }
+  if (!otp) { toast('Enter your OTP first'); return; }
+
+  let verified = false;
+
+  // Firebase verify
+  if (window.CBCL_FIREBASE) {
+    try {
+      const fbUser = await window.CBCL_FIREBASE.verifyOtp(otp);
+      if (fbUser) {
+        verified = true;
+        loginUser(fbUser.uid, name, phone, nick, stay);
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // Demo verify
+  if (pendingOtp && pendingOtp.phone === phone && pendingOtp.code === otp) {
+    verified = true;
+    loginUser(`u_${Date.now()}`, name, phone, nick, stay);
+  } else if (!verified) {
+    toast('OTP incorrect ✕');
+  }
+});
+
+async function loginUser(uid, name, phone, nick, stay) {
+  let user = state.users.find(u => u.id === uid || u.phone === phone);
+  if (!user) {
+    user = { id: uid, name, phone, nickname: nick || '', profilePhoto: '', totalPoints: 0, matchesPlayed: 0, runs: 0, wickets: 0, sixes: 0, dots: 0, streak: 0, history: [] };
+    state.users.push(user);
+  } else {
+    user.name = name;
+    if (nick) user.nickname = nick;
+    user.id = uid; // ensure id updated for Firebase UIDs
+  }
+  // Sync profile to Firestore
+  if (window.CBCL_FIREBASE && !String(uid).startsWith('demo_')) {
+    try {
+      const profile = await window.CBCL_FIREBASE.upsertUserProfile({ uid, phone: `+91${phone}`, name, nickname: nick || '', profilePhoto: '' });
+      if (profile) Object.assign(user, { totalPoints: profile.totalPoints || user.totalPoints, runs: profile.runs || user.runs, wickets: profile.wickets || user.wickets });
+    } catch(e) { console.warn('Profile sync failed:', e); }
+  }
+  state.currentUserId = user.id;
+  state.stayLoggedIn = stay;
+  pendingOtp = null;
+  refresh();
+  navigate('dashboard');
+  toast(`Welcome to the arena, ${user.nickname || user.name}! 🏏`);
+}
+
+document.getElementById('btn-demo').addEventListener('click', () => {
+  state.currentUserId = state.users[0].id;
+  refresh();
+  navigate('dashboard');
+  toast('Demo mode loaded');
+});
+
+// ───────── BATTING OVER SCOREBOARD ─────────
+let batBalls = [], bowlBalls = [];
+
+function addBallResult(mode, label, isNeg) {
+  const balls = mode === 'bat' ? batBalls : bowlBalls;
+  if (balls.length >= 6) balls.shift();
+  balls.push({ label, isNeg });
+  renderScoreboard(mode);
+}
+
+function renderScoreboard(mode) {
+  const id = mode === 'bat' ? 'bat-scoreboard' : 'bowl-scoreboard';
+  const balls = mode === 'bat' ? batBalls : bowlBalls;
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+
+  // Empty slots
+  const slots = Array(6).fill(null).map((_, i) => balls[i] || null);
+  slots.forEach((b, i) => {
+    const div = document.createElement('div');
+    div.className = 'ball-result';
+    if (b) {
+      div.textContent = b.label;
+      if (b.label === '6') div.classList.add('six');
+      else if (b.label === '4') div.classList.add('four');
+      else if (b.isNeg) div.classList.add('neg');
+      else if (['W','Bowled','Catch','LBW'].some(x => String(b.label).includes(x))) div.classList.add('wicket');
+      else div.classList.add('runs');
+      if (i === balls.length - 1) { div.classList.add('new-entry'); setTimeout(() => div.classList.remove('new-entry'), 500); }
+    }
+    el.appendChild(div);
+  });
+}
+
+// Init scoreboards
+renderScoreboard('bat');
+renderScoreboard('bowl');
+
+// ───────── BATTING GAME ─────────
+let batState = { interval: null, needle: 0, dir: 1, inPlay: false, reached: false };
+
+const batZones = [
+  { min: 82, outcome: { label:'6', points:6, runs:6, sixes:1, type:'positive' }, sel:'.z-six' },
+  { min: 64, outcome: { label:'4', points:4, runs:4, type:'positive' }, sel:'.z-four' },
+  { min: 48, outcome: { label:'3', points:3, runs:3, type:'positive' }, sel:'.z-three' },
+  { min: 30, outcome: { label:'2', points:2, runs:2, type:'positive' }, sel:'.z-two' },
+  { min: 14, outcome: { label:'1', points:1, runs:1, type:'positive' }, sel:'.z-one-a' },
+  { min:  0, outcome: { label:'1', points:1, runs:1, type:'positive' }, sel:'.z-one-b' }
+];
+
+function resetBatUI() {
+  clearInterval(batState.interval); batState.interval = null;
+  Object.assign(batState, { needle: 0, dir: 1, inPlay: false, reached: false });
+  document.querySelectorAll('#screen-batting .zone').forEach(z => z.classList.remove('hit'));
+  const ball = document.getElementById('bat-ball');
+  if (ball) { ball.style.cssText = ''; }
+  const needle = document.getElementById('bat-needle');
+  if (needle) needle.style.left = '0%';
+  document.getElementById('bat-shot').disabled = true;
+  document.getElementById('bat-hint').textContent = 'Press START to face the delivery';
+  const pop = document.getElementById('bat-result-pop');
+  if (pop) pop.classList.remove('show');
+}
+
+document.getElementById('bat-start').addEventListener('click', () => {
+  resetBatUI();
+  batState.inPlay = true;
+  document.getElementById('bat-hint').textContent = 'Bowler charging in… Hit it! 🏏';
+  document.getElementById('bat-shot').disabled = false;
+
+  // Start needle
+  batState.interval = setInterval(() => {
+    batState.needle += batState.dir * 4.5;
+    if (batState.needle >= 100) { batState.needle = 100; batState.dir = -1; }
+    if (batState.needle <= 0) { batState.needle = 0; batState.dir = 1; }
+    document.getElementById('bat-needle').style.left = batState.needle + '%';
+  }, 12);
+
+  // Animate ball
+  const ball = document.getElementById('bat-ball');
+  ball.style.cssText = 'top:13%;left:50%;transform:translateX(-50%)';
+  ball.animate([
+    { top:'13%', left:'50%', transform:'translateX(-50%) scale(1)' },
+    { top:'30%', left:'50%', transform:'translateX(-50%) scale(1.04)' },
+    { top:'52%', left:'50%', transform:'translateX(-50%) scale(1.07)' },
+    { top:'74%', left:'50%', transform:'translateX(-50%) scale(1.10)' }
+  ], { duration: 650, easing:'linear', fill:'forwards' });
+
+  setTimeout(() => {
+    batState.reached = true;
+    document.getElementById('bat-hint').textContent = '🎯 Take the shot NOW!';
+  }, 620);
+});
+
+document.getElementById('bat-shot').addEventListener('click', async () => {
+  if (!batState.inPlay) return;
+  clearInterval(batState.interval); batState.interval = null;
+  document.getElementById('bat-shot').disabled = true;
+
+  const timingScore = Math.max(0, 100 - Math.abs(batState.needle - 50) * 1.7);
+  const zone = batZones.find(z => timingScore >= z.min) || batZones[batZones.length - 1];
+
+  // Highlight zone
+  const zEl = document.querySelector(zone.sel);
+  if (zEl) zEl.classList.add('hit');
+
+  // Animate ball to zone target
+  const ball = document.getElementById('bat-ball');
+  const zonePositions = {
+    '.z-six':   { top:'8%', left:'50%' },
+    '.z-four':  { top:'20%', left:'82%' },
+    '.z-three': { top:'50%', left:'90%' },
+    '.z-two':   { top:'76%', left:'82%' },
+    '.z-one-a': { top:'88%', left:'50%' },
+    '.z-one-b': { top:'50%', left:'8%' }
+  };
+  const target = zonePositions[zone.sel];
+  ball.animate([
+    { top:'74%', left:'50%', transform:'translateX(-50%) scale(1)' },
+    { top: target.top, left: target.left, transform:'translate(-50%,-50%) scale(1.2)' }
+  ], { duration: 280, easing:'ease-out', fill:'forwards' });
+
+  // Flash crowd
+  const crowd = document.getElementById('bat-crowd');
+  crowd.classList.add('on');
+  setTimeout(() => crowd.classList.remove('on'), 600);
+
+  const outcome = zone.outcome;
+  const multiplier = isBoost() ? 2 : 1;
+  const finalPts = outcome.points * multiplier;
+
+  // Show result pop
+  const label = outcome.label === '6' ? '🔥 SIX!' : outcome.label === '4' ? '⚡ FOUR!' : `${outcome.label} Run${outcome.label !== '1' ? 's' : ''}`;
+  document.getElementById('bat-result-label').textContent = label;
+  document.getElementById('bat-result-pts').textContent = `+${finalPts} pts${isBoost() ? ' (2×)' : ''}`;
+  document.getElementById('bat-result-pop').classList.add('show');
+
+  batState.inPlay = false;
+  batState.reached = false;
+
+  // Add to scoreboard
+  addBallResult('bat', outcome.label, false);
+
+  // Update hint
+  document.getElementById('bat-hint').textContent = `${label} — ${finalPts > outcome.points ? '2× boosted!' : 'Nice shot!'}`;
+
+  // Save
+  await finishPlay('bat', outcome, finalPts);
+
+  setTimeout(() => {
+    document.getElementById('bat-result-pop').classList.remove('show');
+    document.querySelectorAll('#screen-batting .zone').forEach(z => z.classList.remove('hit'));
+  }, 1400);
+});
+
+// ───────── BOWLING GAME ─────────
+let bowlState = { interval: null, needle: 0, dir: 1, inPlay: false };
+
+const bowlZones = [
+  { min: 84, outcome: { label:'Bowled', points:12, wickets:1, type:'positive' }, sel:'.z-bowl' },
+  { min: 64, outcome: { label:'Catch',  points:8,  wickets:1, type:'positive' }, sel:'.z-catch' },
+  { min: 46, outcome: { label:'LBW',    points:4,  wickets:1, type:'positive' }, sel:'.z-lbw' },
+  { min: 28, outcome: { label:'-1',     points:-1,            type:'negative' }, sel:'.z-m1' },
+  { min: 12, outcome: { label:'-4',     points:-4,            type:'negative' }, sel:'.z-m4' },
+  { min:  0, outcome: { label:'-6',     points:-6,            type:'negative' }, sel:'.z-m6' }
+];
+
+function resetBowlUI() {
+  clearInterval(bowlState.interval); bowlState.interval = null;
+  Object.assign(bowlState, { needle: 0, dir: 1, inPlay: false });
+  document.querySelectorAll('#screen-bowling .zone').forEach(z => z.classList.remove('hit'));
+  const ball = document.getElementById('bowl-ball');
+  if (ball) ball.style.cssText = '';
+  const needle = document.getElementById('bowl-needle');
+  if (needle) needle.style.left = '0%';
+  document.getElementById('bowl-release').disabled = true;
+  document.getElementById('bowl-hint').textContent = 'Press START to begin your run-up';
+  const pop = document.getElementById('bowl-result-pop');
+  if (pop) pop.classList.remove('show');
+}
+
+document.getElementById('bowl-start').addEventListener('click', () => {
+  resetBowlUI();
+  bowlState.inPlay = true;
+  document.getElementById('bowl-hint').textContent = 'Run-up in motion… Release when HOT 🔥';
+  document.getElementById('bowl-release').disabled = false;
+
+  bowlState.interval = setInterval(() => {
+    bowlState.needle += bowlState.dir * 4.8;
+    if (bowlState.needle >= 100) { bowlState.needle = 100; bowlState.dir = -1; }
+    if (bowlState.needle <= 0) { bowlState.needle = 0; bowlState.dir = 1; }
+    document.getElementById('bowl-needle').style.left = bowlState.needle + '%';
+  }, 12);
+});
+
+document.getElementById('bowl-release').addEventListener('click', async () => {
+  if (!bowlState.inPlay) return;
+  clearInterval(bowlState.interval); bowlState.interval = null;
+  document.getElementById('bowl-release').disabled = true;
+
+  const speedScore = bowlState.needle;
+  const zone = bowlZones.find(z => speedScore >= z.min) || bowlZones[bowlZones.length - 1];
+  const isNeg = zone.outcome.type === 'negative';
+
+  // Highlight zone
+  const zEl = document.querySelector(zone.sel);
+  if (zEl) zEl.classList.add('hit');
+
+  // Animate ball downward
+  const ball = document.getElementById('bowl-ball');
+  ball.animate([
+    { top:'13%', left:'50%', transform:'translateX(-50%) scale(1)' },
+    { top:'35%', left:'50%', transform:'translateX(-50%) scale(1.04)' },
+    { top:'62%', left:'50%', transform:'translateX(-50%) scale(1.07)' },
+    { top:'78%', left:'50%', transform:'translateX(-50%) scale(1.1)' }
+  ], { duration: 320, easing:'ease-in', fill:'forwards' });
+
+  // Crowd flash
+  const crowd = document.getElementById('bowl-crowd');
+  crowd.classList.add('on');
+  setTimeout(() => crowd.classList.remove('on'), 600);
+
+  const outcome = zone.outcome;
+  const multiplier = isBoost() ? 2 : 1;
+  const finalPts = Math.round(outcome.points * multiplier);
+
+  const labelText = isNeg ? `${outcome.label}` : `${outcome.label}! 🎯`;
+  document.getElementById('bowl-result-label').textContent = labelText;
+  document.getElementById('bowl-result-pts').textContent = `${finalPts > 0 ? '+' : ''}${finalPts} pts${isBoost() ? ' (2×)' : ''}`;
+  document.getElementById('bowl-result-pop').classList.add('show');
+
+  bowlState.inPlay = false;
+  addBallResult('bowl', outcome.label.substring(0,3), isNeg);
+  document.getElementById('bowl-hint').textContent = `${labelText} · ${finalPts > 0 ? '+' : ''}${finalPts} points!`;
+
+  await finishPlay('bowl', outcome, finalPts);
+
+  setTimeout(() => {
+    document.getElementById('bowl-result-pop').classList.remove('show');
+    document.querySelectorAll('#screen-bowling .zone').forEach(z => z.classList.remove('hit'));
+  }, 1400);
+});
+
+// ───────── FINISH PLAY ─────────
+async function finishPlay(mode, outcome, finalPts) {
+  const user = currentUser();
+  if (!user) return;
+
+  user.totalPoints = (user.totalPoints || 0) + finalPts;
+  user.matchesPlayed = (user.matchesPlayed || 0) + 1;
+  user.runs = (user.runs || 0) + (outcome.runs || 0);
+  user.wickets = (user.wickets || 0) + (outcome.wickets || 0);
+  user.sixes = (user.sixes || 0) + (outcome.sixes || 0);
+
+  // Simulate rivals
+  state.users.filter(u => u.id !== state.currentUserId).forEach(rival => {
+    if (Math.random() > 0.6) {
+      const g = [1,2,4,6][Math.floor(Math.random()*4)];
+      rival.totalPoints += g; rival.runs += g; rival.matchesPlayed++;
+    }
+  });
+
+  // Firebase sync if available
+  if (window.CBCL_FIREBASE && !String(user.id).startsWith('u_') && !String(user.id).startsWith('demo_')) {
+    try {
+      const cfg = window.CBCL_CONFIG || { matchBoost: { startHour:19, startMinute:0, endHour:23, endMinute:30, multiplier:2 } };
+      const saved = await window.CBCL_FIREBASE.saveGameResult({ uid: user.id, mode, outcome, config: cfg });
+      if (saved) {
+        Object.assign(user, {
+          totalPoints: saved.totalPoints, matchesPlayed: saved.matchesPlayed,
+          runs: saved.runs, wickets: saved.wickets, sixes: saved.sixes,
+          dots: saved.dots, streak: saved.streak, history: saved.history
+        });
+      }
+    } catch(e) { console.warn('Firebase sync failed:', e); }
+  }
+
+  storageSave(state);
+  refresh();
+}
+
+// ───────── NAV ─────────
+document.getElementById('btn-bat').addEventListener('click', () => {
+  resetBatUI(); batBalls = []; renderScoreboard('bat'); navigate('batting');
+});
+
+document.getElementById('btn-bowl').addEventListener('click', () => {
+  resetBowlUI(); bowlBalls = []; renderScoreboard('bowl'); navigate('bowling');
+});
+
+document.querySelectorAll('.nav-tab, [data-nav]').forEach(el => {
+  el.addEventListener('click', () => {
+    const t = el.dataset.nav;
+    if (t) navigate(t);
+  });
+});
+
+document.getElementById('brand').addEventListener('click', () => navigate('home'));
+
+document.getElementById('btn-logout').addEventListener('click', () => {
+  state.currentUserId = null; storageSave(state); navigate('home'); toast('Logged out');
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  localStorage.removeItem(STORAGE_KEY); location.reload();
+});
+
+// ───────── HOME STATS ─────────
+function updateHomeStats() {
+  document.getElementById('home-players').textContent = state.users.length;
+  const totalBalls = state.users.reduce((a, u) => a + (u.matchesPlayed || 0), 0);
+  document.getElementById('home-balls').textContent = totalBalls;
+}
+
+// ───────── BOOT ─────────
+// Merge config demo users
+if (window.CBCL_CONFIG?.demoUsers) {
+  window.CBCL_CONFIG.demoUsers.forEach(du => {
+    if (!state.users.find(u => u.id === du.id)) state.users.push(du);
+  });
+}
+updateBoost();
+updateHomeStats();
+if (state.currentUserId) {
+  refresh();
+  navigate('dashboard');
+} else {
+  navigate('home');
+}
+
+// Splash
+setTimeout(() => document.getElementById('splash').classList.add('hide'), 1600);
+
+// Background refresh
+setInterval(() => { if (state.currentUserId) refresh(); }, 10000);
+setInterval(updateBoost, 30000);
+
+// Load Firebase if available
+if (window.CBCL_FIREBASE) refresh();
+</script>
+
+<!-- Firebase (kept as passthrough) -->
+<script src="./js/config.js" onerror="void 0"></script>
+<script src="./js/storage.js" onerror="void 0"></script>
+<script src="./js/sounds.js" onerror="void 0"></script>
+<script type="module" src="./js/firebase-service.js" onerror="void 0"></script>
+
 </body>
 </html>
