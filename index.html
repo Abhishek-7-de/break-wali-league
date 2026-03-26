@@ -859,7 +859,7 @@ document.getElementById("btn-send-otp").addEventListener("click",async()=>{
   }catch(e){
     // Check if it's a billing/quota error
     const msg=e.message||"";
-    if(msg.includes("billing")||msg.includes("quota")||msg.includes("BILLING")||msg.includes("auth/"){ 
+    if(msg.includes("billing")||msg.includes("quota")||msg.includes("BILLING")||msg.includes("auth/")){ 
       statusEl.className="otp-status error";
       statusEl.textContent="⚠ Firebase SMS not configured. Use admin OTP to test.";
     }else{
