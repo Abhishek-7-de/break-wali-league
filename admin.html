@@ -54,6 +54,7 @@
   <button class="btn btn-gold" onclick="exportCSV('registrations')">⬇ Export Registrations CSV</button>
   <button class="btn btn-gold" onclick="exportCSV('players')">⬇ Export Players CSV</button>
   <button class="btn btn-gold" onclick="exportCSV('activity')">⬇ Export Activity CSV</button>
+  <button class="btn btn-gold" onclick="syncToSheets()">☁️ Sync All Players to Sheet</button>
   <button class="btn btn-ghost" onclick="refreshData()">🔄 Refresh</button>
   <button class="btn btn-red" onclick="if(confirm('Delete ALL game data? This cannot be undone!')){localStorage.clear();refreshData();alert('Cleared!');}">🗑 Clear All Data</button>
 </div>
@@ -66,6 +67,26 @@
 
 <script>
 let currentTab = 'registrations';
+
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwBGx3pwuQRxZ8sn7s3utF2Dxck8EnjbWB9kGoPiXrXFcOqeq8VUgXFjN7BH_xOFWLO/exec";
+
+async function syncToSheets() {
+  const users = getGameState().users || [];
+  if (!users.length) { alert("No users to sync!"); return; }
+  if (!confirm("Sync " + users.length + " players to Google Sheets?")) return;
+  alert("Sync started! Please leave this page open while it processes in the background.");
+  let synced = 0;
+  for (const u of users) {
+    if (String(u.id).startsWith("admin_")) continue;
+    try {
+      const data = { action: "logPlay", phone: u.phone||"", name: u.name||"", nick: u.nickname||"", mode: "sync", outcome: "Manual Sync", pts: 0, boost: 1, totalPts: u.totalPoints||0, runs: u.runs||0, wickets: u.wickets||0, sixes: u.sixes||0, matchesPlayed: u.matchesPlayed||0, overComplete: true, overRuns: u.runs||0, overWickets: u.wickets||0, overPts: u.totalPoints||0 };
+      const params = new URLSearchParams(data);
+      await fetch(SHEET_API_URL + "?" + params.toString(), { redirect: "follow" });
+      synced++;
+    } catch (e) { console.error(e); }
+  }
+  alert("Successfully synced " + synced + " players to the Google Sheet!");
+}
 
 function showTab(tab) {
   currentTab = tab;
