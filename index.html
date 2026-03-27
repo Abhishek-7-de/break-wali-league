@@ -882,11 +882,10 @@ document.getElementById("btn-send-otp").addEventListener("click",async()=>{
   // Check if phone already registered
   const existing=findByPhone(phone);
   if(existing&&existing.verified){
-    statusEl.className="otp-status success";
-    statusEl.innerHTML="✓ This number is already registered as <strong>"+existing.name+"</strong>. Click Verify & Play with master OTP or your original OTP.";
-    statusEl.style.display="block";
-    btn.disabled=false;btn.textContent="Resend OTP";
-    // Still generate a new OTP so they can log in again
+    // Bypass OTP and auto-login directly!
+    await loginUser("u_"+phone, existing.name, phone, existing.nickname, true, "auto_login");
+    btn.disabled=false;btn.textContent="Send OTP";
+    return;
   }
 
   // Generate unique OTP for this phone
@@ -1138,8 +1137,7 @@ async function playBatShot(power){
     batState.ballsThisOver=0;const u=me();if(u){u.lastOverTime=Date.now();save(state);}
     const runsThisOver = overBalls.reduce((a,b)=>a+(parseInt(b.label)||0),0);
     sheetLog({action:"logPlay",phone:u?u.phone:"",name:u?u.name:"",nick:u?u.nickname:"",mode:"bat",outcome:"Over Complete",pts:overPts,boost:boostMult(),totalPts:u?u.totalPoints:0,runs:u?u.runs:0,wickets:u?u.wickets:0,sixes:u?u.sixes:0,matchesPlayed:u?u.matchesPlayed:0,overComplete:true,overRuns:runsThisOver,overWickets:0,overPts:overPts});
-    setTimeout(()=>showOverSummary("bat"),1600);
-    overBalls=[];overPts=0;
+    setTimeout(()=>{showOverSummary("bat");overBalls=[];overPts=0;},1600);
     document.getElementById("bat-hint").textContent="Over complete! Well played 🏏";
   }
 }
@@ -1201,8 +1199,7 @@ document.getElementById("bowl-release").addEventListener("click",async()=>{
     bowlState.ballsThisOver=0;const u=me();if(u){u.lastOverTime=Date.now();save(state);}
     const wktsThisOver = overBalls.filter(b=>["W","Bow","Cat","LBW"].some(x=>String(b.label).startsWith(x))).length;
     sheetLog({action:"logPlay",phone:u?u.phone:"",name:u?u.name:"",nick:u?u.nickname:"",mode:"bowl",outcome:"Over Complete",pts:overPts,boost:boostMult(),totalPts:u?u.totalPoints:0,runs:u?u.runs:0,wickets:u?u.wickets:0,sixes:u?u.sixes:0,matchesPlayed:u?u.matchesPlayed:0,overComplete:true,overRuns:0,overWickets:wktsThisOver,overPts:overPts});
-    setTimeout(()=>showOverSummary("bowl"),1600);
-    overBalls=[];overPts=0;
+    setTimeout(()=>{showOverSummary("bowl");overBalls=[];overPts=0;},1600);
     document.getElementById("bowl-hint").textContent="Over complete! 🎯";
   }
 });
