@@ -292,7 +292,7 @@ function sendSMS(phone, otp) {
     const url = "https://www.fast2sms.com/dev/bulkV2";
     const payload = {
       route: "q",           // Quick SMS (transactional)
-      message: `Your Break Wali League OTP is ${otp}. Valid for ${OTP_EXPIRY_MINUTES} minutes. Do not share. - Chai Break`,
+      message: `Your Break Wali League OTP is ${otp}. Valid for ${OTP_EXPIRY_MINUTES} minutes. Do not share.`,
       language: "english",
       flash: 0,
       numbers: phone
