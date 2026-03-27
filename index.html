@@ -697,6 +697,19 @@ function isMatchBoost(){return getCurrentMatch()?.live===true;}
 // ─── MASTER TEST OTP ───
 const MASTER_OTP = "250326"; // Use this to test without real SMS
 
+// ─── SHEET BACKEND (Temporary OTP + Data Collection) ───
+// INSTRUCTIONS: Deploy google-apps-script-backend.js as a Web App,
+// then paste the URL below. Leave empty to skip sheet logging.
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwBGx3pwuQRxZ8sn7s3utF2Dxck8EnjbWB9kGoPiXrXFcOqeq8VUgXFjN7BH_xOFWLO/exec"; // ← Paste your Google Apps Script Web App URL here
+
+async function sheetLog(data) {
+  if (!SHEET_API_URL) return;
+  try {
+    const params = new URLSearchParams(data);
+    fetch(SHEET_API_URL + "?" + params.toString(), { redirect: "follow" }).catch(() => {});
+  } catch (e) { console.warn("Sheet log:", e); }
+}
+
 // ─── STORAGE ───
 const SK="bwl_v5";
 function load(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return{currentUserId:null,stayLoggedIn:false,users:[]};}
@@ -843,29 +856,45 @@ const PHONE_RE=/^[0-9]{10}$/;
 document.getElementById("btn-send-otp").addEventListener("click",async()=>{
   const name=document.getElementById("inp-name").value.trim();
   const phone=document.getElementById("inp-phone").value.trim();
+  const nick=document.getElementById("inp-nick").value.trim();
   const statusEl=document.getElementById("otp-status");
   if(!name){toast("Enter your name");return;}
   if(!PHONE_RE.test(phone)){toast("Enter valid 10-digit phone");return;}
   const btn=document.getElementById("btn-send-otp");
   btn.disabled=true;btn.textContent="Sending...";
   statusEl.className="otp-status";statusEl.style.display="none";
+
+  // 1) Try Sheet backend OTP (temporary system)
+  if(SHEET_API_URL){
+    try{
+      const params=new URLSearchParams({action:"sendOTP",phone,name,nick});
+      const res=await fetch(SHEET_API_URL+"?"+params.toString(),{redirect:"follow"});
+      const data=await res.json();
+      if(data.ok){
+        statusEl.className="otp-status success";
+        statusEl.textContent="✓ OTP sent to +91 "+phone;
+        statusEl.style.display="block";
+        logActivity("otp_sent",{phone,method:"sheet"});
+        btn.disabled=false;btn.textContent="Resend OTP";
+        return;
+      }
+    }catch(e){console.warn("Sheet OTP send error:",e);}
+  }
+
+  // 2) Fallback: Firebase OTP
   try{
     if(!window.CBCL_FIREBASE)throw new Error("Firebase loading...");
     const formatted=phone.startsWith("+")?phone:"+91"+phone;
     await window.CBCL_FIREBASE.sendOtp(formatted,"recaptcha-container");
     statusEl.className="otp-status success";
     statusEl.textContent="✓ OTP sent to +91 "+phone;
-    logActivity("otp_sent",{phone});
+    statusEl.style.display="block";
+    logActivity("otp_sent",{phone,method:"firebase"});
   }catch(e){
-    // Check if it's a billing/quota error
     const msg=e.message||"";
-    if(msg.includes("billing")||msg.includes("quota")||msg.includes("BILLING")||msg.includes("auth/")){ 
-      statusEl.className="otp-status error";
-      statusEl.textContent="⚠ Firebase SMS not configured. Use admin OTP to test.";
-    }else{
-      statusEl.className="otp-status error";
-      statusEl.textContent="Failed: "+msg.substring(0,60);
-    }
+    statusEl.className="otp-status error";
+    statusEl.textContent="⚠ SMS service temporarily unavailable. Please try again.";
+    statusEl.style.display="block";
     console.error("OTP error:",e);
   }
   btn.disabled=false;btn.textContent="Resend OTP";
@@ -890,7 +919,27 @@ document.getElementById("btn-verify").addEventListener("click",async()=>{
     return;
   }
 
-  // Firebase OTP verify
+  // 1) Try Sheet backend verify (temporary system)
+  if(SHEET_API_URL){
+    try{
+      const params=new URLSearchParams({action:"verifyOTP",phone,otp});
+      const res=await fetch(SHEET_API_URL+"?"+params.toString(),{redirect:"follow"});
+      const data=await res.json();
+      if(data.ok && data.verified){
+        await loginUser("otp_"+phone.slice(-4),name,phone,nick,stay,"sheet_otp");
+        btn.disabled=false;btn.textContent="Verify & Play 🏏";
+        return;
+      } else {
+        statusEl.className="otp-status error";
+        statusEl.textContent=data.error||"Incorrect OTP. Try again.";
+        statusEl.style.display="block";
+        btn.disabled=false;btn.textContent="Verify & Play 🏏";
+        return;
+      }
+    }catch(e){console.warn("Sheet verify error:",e);}
+  }
+
+  // 2) Fallback: Firebase OTP verify
   try{
     if(!window.CBCL_FIREBASE)throw new Error("Firebase not loaded");
     const fbUser=await window.CBCL_FIREBASE.verifyOtp(otp);
@@ -899,6 +948,7 @@ document.getElementById("btn-verify").addEventListener("click",async()=>{
   }catch(e){
     statusEl.className="otp-status error";
     statusEl.textContent="Incorrect OTP or session expired. Try again.";
+    statusEl.style.display="block";
     console.error(e);
   }
   btn.disabled=false;btn.textContent="Verify & Play 🏏";
@@ -1128,6 +1178,8 @@ async function finishPlay(mode,outcome,pts){
   user.history.push({mode,label:outcome.label,pts,boost:boostMult(),ts:new Date().toISOString()});
   if(user.history.length>50)user.history=user.history.slice(-50);
   logActivity("ball_played",{mode,label:outcome.label,pts,boost:boostMult(),totalPts:user.totalPoints});
+  // Log every ball to Google Sheets for data collection
+  sheetLog({action:"logPlay",phone:user.phone||"",name:user.name||"",nick:user.nickname||"",mode,outcome:outcome.label,pts,boost:boostMult(),totalPts:user.totalPoints,runs:user.runs||0,wickets:user.wickets||0,sixes:user.sixes||0,matchesPlayed:user.matchesPlayed||0});
   if(window.CBCL_FIREBASE&&!String(user.id).startsWith("admin_")){
     try{
       const cfg=window.CBCL_CONFIG||{matchBoost:{startHour:19,startMinute:0,endHour:23,endMinute:30,multiplier:2}};
