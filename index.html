@@ -1136,6 +1136,8 @@ async function playBatShot(power){
   batState.ballsThisOver=(batState.ballsThisOver||0)+1;
   if(batState.ballsThisOver>=6){
     batState.ballsThisOver=0;const u=me();if(u){u.lastOverTime=Date.now();save(state);}
+    const runsThisOver = overBalls.reduce((a,b)=>a+(parseInt(b.label)||0),0);
+    sheetLog({action:"logPlay",phone:u?u.phone:"",name:u?u.name:"",nick:u?u.nickname:"",mode:"bat",outcome:"Over Complete",pts:overPts,boost:boostMult(),totalPts:u?u.totalPoints:0,runs:u?u.runs:0,wickets:u?u.wickets:0,sixes:u?u.sixes:0,matchesPlayed:u?u.matchesPlayed:0,overComplete:true,overRuns:runsThisOver,overWickets:0,overPts:overPts});
     setTimeout(()=>showOverSummary("bat"),1600);
     overBalls=[];overPts=0;
     document.getElementById("bat-hint").textContent="Over complete! Well played 🏏";
@@ -1197,6 +1199,8 @@ document.getElementById("bowl-release").addEventListener("click",async()=>{
   bowlState.ballsThisOver=(bowlState.ballsThisOver||0)+1;
   if(bowlState.ballsThisOver>=6){
     bowlState.ballsThisOver=0;const u=me();if(u){u.lastOverTime=Date.now();save(state);}
+    const wktsThisOver = overBalls.filter(b=>["W","Bow","Cat","LBW"].some(x=>String(b.label).startsWith(x))).length;
+    sheetLog({action:"logPlay",phone:u?u.phone:"",name:u?u.name:"",nick:u?u.nickname:"",mode:"bowl",outcome:"Over Complete",pts:overPts,boost:boostMult(),totalPts:u?u.totalPoints:0,runs:u?u.runs:0,wickets:u?u.wickets:0,sixes:u?u.sixes:0,matchesPlayed:u?u.matchesPlayed:0,overComplete:true,overRuns:0,overWickets:wktsThisOver,overPts:overPts});
     setTimeout(()=>showOverSummary("bowl"),1600);
     overBalls=[];overPts=0;
     document.getElementById("bowl-hint").textContent="Over complete! 🎯";
@@ -1215,8 +1219,6 @@ async function finishPlay(mode,outcome,pts){
   user.history.push({mode,label:outcome.label,pts,boost:boostMult(),ts:new Date().toISOString()});
   if(user.history.length>50)user.history=user.history.slice(-50);
   logActivity("ball_played",{mode,label:outcome.label,pts,boost:boostMult(),totalPts:user.totalPoints});
-  // Log every ball to Google Sheets for data collection
-  sheetLog({action:"logPlay",phone:user.phone||"",name:user.name||"",nick:user.nickname||"",mode,outcome:outcome.label,pts,boost:boostMult(),totalPts:user.totalPoints,runs:user.runs||0,wickets:user.wickets||0,sixes:user.sixes||0,matchesPlayed:user.matchesPlayed||0});
   if(window.CBCL_FIREBASE&&!String(user.id).startsWith("admin_")){
     try{
       const cfg=window.CBCL_CONFIG||{matchBoost:{startHour:19,startMinute:0,endHour:23,endMinute:30,multiplier:2}};
