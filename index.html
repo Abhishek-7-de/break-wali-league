@@ -387,7 +387,11 @@
         <div><div class="eyebrow">One-time registration</div><div class="auth-title">ENTER<br>THE LEAGUE</div></div>
         <div class="frow">
           <div class="fgroup"><div class="flabel">Name *</div><input class="finput" id="inp-name" type="text" placeholder="Your name" autocomplete="name"/></div>
-          <div class="fgroup"><div class="flabel">Phone *</div><input class="finput" id="inp-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10 digits" autocomplete="tel"/></div>
+          <div class="fgroup">
+            <div class="flabel">Phone *</div>
+            <input class="finput" id="inp-phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10 digits" autocomplete="tel"/>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:0.04em;">Enter your billing phone number</div>
+          </div>
           <div class="fgroup full"><div class="flabel">Nickname</div><input class="finput" id="inp-nick" type="text" placeholder="Arena nickname (optional)"/></div>
         </div>
         <!-- recaptcha-container removed — using internal OTP. Re-add when Firebase is configured -->
