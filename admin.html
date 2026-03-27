@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BWL Admin — Player Data</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;padding:20px;}
+  h1{font-size:24px;color:#ffd700;margin-bottom:4px;}
+  .sub{font-size:13px;color:#888;margin-bottom:20px;}
+  .tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .tab{padding:8px 18px;border:1px solid #333;border-radius:8px;background:#111;color:#ccc;cursor:pointer;font-size:13px;font-weight:600;}
+  .tab.active{background:#ffd700;color:#000;border-color:#ffd700;}
+  .card{background:#111;border:1px solid #222;border-radius:12px;padding:16px;margin-bottom:16px;}
+  .card h2{font-size:16px;color:#ffd700;margin-bottom:8px;}
+  .stat-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+  .stat-box{background:#1a1a2e;border:1px solid #2a2a4e;border-radius:8px;padding:12px 18px;text-align:center;min-width:120px;}
+  .stat-box .num{font-size:28px;font-weight:700;color:#ffd700;}
+  .stat-box .label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.1em;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;padding:8px 10px;border-bottom:2px solid #333;color:#ffd700;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;}
+  td{padding:7px 10px;border-bottom:1px solid #1a1a2e;}
+  tr:hover td{background:#1a1a2e;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;}
+  .badge.yes{background:rgba(0,230,118,0.15);color:#00e676;}
+  .badge.no{background:rgba(255,59,78,0.15);color:#ff3b4e;}
+  .btn{padding:8px 20px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:0.2s;}
+  .btn-gold{background:#ffd700;color:#000;}
+  .btn-gold:hover{background:#ffed4a;}
+  .btn-red{background:#ff3b4e;color:#fff;}
+  .btn-red:hover{background:#ff5c6c;}
+  .btn-ghost{background:transparent;border:1px solid #444;color:#ccc;}
+  .btn-ghost:hover{border-color:#ffd700;color:#ffd700;}
+  .actions{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .empty{color:#666;padding:20px;text-align:center;font-style:italic;}
+  .search{padding:8px 14px;background:#1a1a2e;border:1px solid #333;border-radius:8px;color:#fff;font-size:13px;width:250px;margin-bottom:12px;}
+  .search:focus{outline:none;border-color:#ffd700;}
+  .refresh-hint{font-size:11px;color:#666;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<h1>🏏 Break Wali League — Admin Panel</h1>
+<p class="sub">View all registered players, game data & export. Data is stored in this browser's localStorage.</p>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('registrations')">📋 Registrations</div>
+  <div class="tab" onclick="showTab('players')">🎮 Player Stats</div>
+  <div class="tab" onclick="showTab('activity')">📊 Activity Log</div>
+</div>
+
+<div class="actions">
+  <button class="btn btn-gold" onclick="exportCSV('registrations')">⬇ Export Registrations CSV</button>
+  <button class="btn btn-gold" onclick="exportCSV('players')">⬇ Export Players CSV</button>
+  <button class="btn btn-gold" onclick="exportCSV('activity')">⬇ Export Activity CSV</button>
+  <button class="btn btn-ghost" onclick="refreshData()">🔄 Refresh</button>
+  <button class="btn btn-red" onclick="if(confirm('Delete ALL game data? This cannot be undone!')){localStorage.clear();refreshData();alert('Cleared!');}">🗑 Clear All Data</button>
+</div>
+
+<input class="search" id="search" type="text" placeholder="🔍 Search by name or phone..." oninput="refreshData()">
+
+<div id="content"></div>
+
+<p class="refresh-hint">💡 This page reads data from the same browser where players registered. Open this file in the same browser.</p>
+
+<script>
+let currentTab = 'registrations';
+
+function showTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[onclick*="${tab}"]`).classList.add('active');
+  refreshData();
+}
+
+function getRegSheet() {
+  try { return JSON.parse(localStorage.getItem('bwl_registrations')) || []; } catch(e) { return []; }
+}
+
+function getGameState() {
+  try { return JSON.parse(localStorage.getItem('bwl_v5')) || { users: [] }; } catch(e) { return { users: [] }; }
+}
+
+function getActivity() {
+  try { return JSON.parse(localStorage.getItem('bwl_activity')) || []; } catch(e) { return []; }
+}
+
+function searchFilter(items, query) {
+  if (!query) return items;
+  const q = query.toLowerCase();
+  return items.filter(item => {
+    const str = JSON.stringify(item).toLowerCase();
+    return str.includes(q);
+  });
+}
+
+function refreshData() {
+  const query = document.getElementById('search').value.trim();
+  const el = document.getElementById('content');
+  
+  if (currentTab === 'registrations') {
+    const regs = searchFilter(getRegSheet(), query);
+    const totalRegs = getRegSheet().length;
+    
+    let html = `<div class="stat-row">
+      <div class="stat-box"><div class="num">${totalRegs}</div><div class="label">Total Registered</div></div>
+      <div class="stat-box"><div class="num">${regs.filter(r=>r.verified).length}</div><div class="label">Verified</div></div>
+      <div class="stat-box"><div class="num">${new Set(regs.map(r=>r.phone)).size}</div><div class="label">Unique Phones</div></div>
+    </div>`;
+    
+    if (!regs.length) {
+      html += '<div class="empty">No registrations yet. Players will appear here after they register in the game.</div>';
+    } else {
+      html += `<div class="card"><h2>Registration Sheet (${regs.length} entries)</h2><table>
+        <tr><th>#</th><th>Phone</th><th>Name</th><th>Nickname</th><th>Registered</th><th>Last Login</th><th>Logins</th><th>Verified</th></tr>`;
+      regs.forEach((r, i) => {
+        html += `<tr>
+          <td>${i+1}</td>
+          <td><strong>${r.phone}</strong></td>
+          <td>${r.name||'-'}</td>
+          <td>${r.nickname||'-'}</td>
+          <td>${r.registeredDate||''} ${r.registeredTime||''}</td>
+          <td>${r.lastLogin ? new Date(r.lastLogin).toLocaleString('en-IN') : '-'}</td>
+          <td>${r.loginCount||1}</td>
+          <td><span class="badge ${r.verified?'yes':'no'}">${r.verified?'Yes':'No'}</span></td>
+        </tr>`;
+      });
+      html += '</table></div>';
+    }
+    el.innerHTML = html;
+    
+  } else if (currentTab === 'players') {
+    const state = getGameState();
+    const users = searchFilter(state.users || [], query);
+    const sorted = [...users].sort((a,b) => (b.totalPoints||0) - (a.totalPoints||0));
+    
+    const totalPts = users.reduce((a,u) => a + (u.totalPoints||0), 0);
+    const totalBalls = users.reduce((a,u) => a + (u.matchesPlayed||0), 0);
+    
+    let html = `<div class="stat-row">
+      <div class="stat-box"><div class="num">${users.length}</div><div class="label">Total Players</div></div>
+      <div class="stat-box"><div class="num">${totalPts}</div><div class="label">Total Points</div></div>
+      <div class="stat-box"><div class="num">${totalBalls}</div><div class="label">Balls Played</div></div>
+      <div class="stat-box"><div class="num">${users.reduce((a,u)=>a+(u.sixes||0),0)}</div><div class="label">Total Sixes</div></div>
+    </div>`;
+    
+    if (!sorted.length) {
+      html += '<div class="empty">No players yet.</div>';
+    } else {
+      html += `<div class="card"><h2>Player Stats — Ranked by Points</h2><table>
+        <tr><th>Rank</th><th>ID</th><th>Name</th><th>Phone</th><th>Nick</th><th>Points</th><th>Balls</th><th>Runs</th><th>Wickets</th><th>Sixes</th><th>Last Over</th></tr>`;
+      sorted.forEach((u, i) => {
+        const lastOver = u.lastOverTime ? new Date(u.lastOverTime).toLocaleString('en-IN') : 'Never';
+        html += `<tr>
+          <td><strong>#${i+1}</strong></td>
+          <td style="font-size:11px;color:#666">${u.id}</td>
+          <td><strong>${u.name||'-'}</strong></td>
+          <td>${u.phone||'-'}</td>
+          <td>${u.nickname||'-'}</td>
+          <td style="color:#ffd700;font-weight:700">${u.totalPoints||0}</td>
+          <td>${u.matchesPlayed||0}</td>
+          <td>${u.runs||0}</td>
+          <td>${u.wickets||0}</td>
+          <td>${u.sixes||0}</td>
+          <td style="font-size:11px">${lastOver}</td>
+        </tr>`;
+      });
+      html += '</table></div>';
+    }
+    el.innerHTML = html;
+    
+  } else if (currentTab === 'activity') {
+    const logs = searchFilter(getActivity(), query).reverse(); // newest first
+    
+    let html = `<div class="stat-row">
+      <div class="stat-box"><div class="num">${logs.length}</div><div class="label">Total Events</div></div>
+      <div class="stat-box"><div class="num">${logs.filter(l=>l.type==='login').length}</div><div class="label">Logins</div></div>
+      <div class="stat-box"><div class="num">${logs.filter(l=>l.type==='ball_played').length}</div><div class="label">Balls Played</div></div>
+      <div class="stat-box"><div class="num">${logs.filter(l=>l.type==='otp_sent').length}</div><div class="label">OTPs Sent</div></div>
+    </div>`;
+    
+    const recent = logs.slice(0, 100);
+    if (!recent.length) {
+      html += '<div class="empty">No activity logged yet.</div>';
+    } else {
+      html += `<div class="card"><h2>Recent Activity (last 100)</h2><table>
+        <tr><th>Time</th><th>Type</th><th>Name</th><th>Phone</th><th>Details</th></tr>`;
+      recent.forEach(l => {
+        const time = l.ts ? new Date(l.ts).toLocaleString('en-IN') : '-';
+        const details = [];
+        if (l.mode) details.push(l.mode);
+        if (l.label) details.push(l.label);
+        if (l.pts !== undefined) details.push(l.pts + 'pts');
+        if (l.method) details.push(l.method);
+        if (l.boost && l.boost > 1) details.push('2× BOOST');
+        html += `<tr>
+          <td style="font-size:11px;white-space:nowrap">${time}</td>
+          <td><span class="badge ${l.type==='login'?'yes':''}">${l.type||'-'}</span></td>
+          <td>${l.name||'-'}</td>
+          <td>${l.phone||'-'}</td>
+          <td style="font-size:12px">${details.join(' · ')}</td>
+        </tr>`;
+      });
+      html += '</table></div>';
+    }
+    el.innerHTML = html;
+  }
+}
+
+function exportCSV(type) {
+  let rows = [];
+  let filename = 'bwl_data.csv';
+  
+  if (type === 'registrations') {
+    const regs = getRegSheet();
+    if (!regs.length) { alert('No registrations to export'); return; }
+    rows.push(['Phone','Name','Nickname','Registered Date','Registered Time','Last Login','Login Count','Verified']);
+    regs.forEach(r => rows.push([r.phone, r.name, r.nickname, r.registeredDate, r.registeredTime, r.lastLogin, r.loginCount, r.verified?'Yes':'No']));
+    filename = 'bwl_registrations_' + new Date().toISOString().split('T')[0] + '.csv';
+    
+  } else if (type === 'players') {
+    const users = getGameState().users || [];
+    if (!users.length) { alert('No players to export'); return; }
+    rows.push(['Rank','ID','Name','Phone','Nickname','TotalPoints','BallsPlayed','Runs','Wickets','Sixes','LastOverTime']);
+    const sorted = [...users].sort((a,b) => (b.totalPoints||0) - (a.totalPoints||0));
+    sorted.forEach((u,i) => rows.push([i+1, u.id, u.name, u.phone, u.nickname, u.totalPoints||0, u.matchesPlayed||0, u.runs||0, u.wickets||0, u.sixes||0, u.lastOverTime ? new Date(u.lastOverTime).toLocaleString('en-IN') : '']));
+    filename = 'bwl_players_' + new Date().toISOString().split('T')[0] + '.csv';
+    
+  } else if (type === 'activity') {
+    const logs = getActivity();
+    if (!logs.length) { alert('No activity to export'); return; }
+    rows.push(['Timestamp','Date','Type','Name','Phone','Nickname','Mode','Label','Points','Boost','TotalPoints','Method']);
+    logs.forEach(l => rows.push([l.ts, l.date, l.type, l.name, l.phone, l.nickname, l.mode||'', l.label||'', l.pts!==undefined?l.pts:'', l.boost||'', l.totalPts||'', l.method||'']));
+    filename = 'bwl_activity_' + new Date().toISOString().split('T')[0] + '.csv';
+  }
+  
+  // Generate CSV and download
+  const csv = rows.map(r => r.map(c => '"' + String(c||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Auto-refresh
+refreshData();
+setInterval(refreshData, 5000);
+</script>
+</body>
+</html>
