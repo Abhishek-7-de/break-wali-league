@@ -64,6 +64,9 @@ function handleRequest(e) {
       case "logPlay":
         result = logGamePlay(params);
         break;
+      case "getLeaderboard":
+        result = getLeaderboard(Number(params.limit)||50);
+        break;
       case "ping":
         result = { ok: true, msg: "BWL Backend alive" };
         break;
@@ -200,6 +203,40 @@ function logGamePlay(params) {
   ]);
 
   return { ok: true, logged: true };
+}
+
+// ── GET LEADERBOARD ──────────────────────────────────────────
+function getLeaderboard(limit) {
+  limit = limit || 50;
+  try {
+    const ss = getOrCreateSheet(SHEET_GAME_PLAYS);
+    if (ss.getLastRow() <= 1) return { ok: true, players: [] };
+    const data = ss.getDataRange().getValues();
+    // Headers: Timestamp, Date, Time, Phone, Name, Nick, Mode, Outcome, Points, Boost, TotalPoints, Runs, Wickets, Sixes, BallsPlayed...
+    // We want the LATEST TotalPoints row per phone (highest row = most recent)
+    const byPhone = {};
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const phone = String(row[3] || "").trim();
+      const name  = String(row[4] || "").trim();
+      const nick  = String(row[5] || "").trim();
+      const totalPts = Number(row[10]) || 0;
+      const runs  = Number(row[11]) || 0;
+      const wickets = Number(row[12]) || 0;
+      const sixes = Number(row[13]) || 0;
+      if (!phone) continue;
+      // Keep the row with the highest TotalPoints for each phone
+      if (!byPhone[phone] || totalPts > byPhone[phone].totalPts) {
+        byPhone[phone] = { phone, name, nick, totalPts, runs, wickets, sixes };
+      }
+    }
+    const players = Object.values(byPhone)
+      .sort(function(a, b) { return b.totalPts - a.totalPts; })
+      .slice(0, limit);
+    return { ok: true, players: players };
+  } catch(err) {
+    return { ok: false, error: err.toString(), players: [] };
+  }
 }
 
 // ── REGISTER USER ────────────────────────────────────────────

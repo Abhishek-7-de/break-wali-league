@@ -807,7 +807,7 @@ function updateCooldown(){
 function navigate(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id==="screen-"+name));
   document.querySelectorAll(".nav-tab").forEach(t=>t.classList.toggle("active",t.dataset.nav===name));
-  if(name==="leaderboard")renderMatches("match-list-full");
+  if(name==="leaderboard"){renderMatches("match-list-full");fetchSheetLeaderboard();}
   if(name==="dashboard")renderMatches("match-list-dash",8);
   refresh();
 }
@@ -828,7 +828,51 @@ function renderLB(users,limit=99){
   }).join("");
 }
 
-// ─── REFRESH ───
+// ─── FETCH LIVE LEADERBOARD FROM GOOGLE SHEET ───
+async function fetchSheetLeaderboard(){
+  const lbf=document.getElementById("lb-full");
+  if(!lbf)return;
+  if(!SHEET_API_URL){lbf.innerHTML=renderLB(state.users);return;}
+  lbf.innerHTML='<p style="color:var(--muted);font-size:13px;padding:8px;text-align:center">⏳ Loading live rankings…</p>';
+  try{
+    const url=SHEET_API_URL+"?action=getLeaderboard&limit=50";
+    const resp=await fetch(url,{redirect:"follow"});
+    const data=await resp.json();
+    if(data.ok&&Array.isArray(data.players)&&data.players.length){
+      // Merge sheet players with local state (take the max totalPoints)
+      const byPhone={};
+      for(const u of state.users){if(u.phone)byPhone[u.phone]={...u};}
+      for(const p of data.players){
+        const key=p.phone;
+        if(!key)continue;
+        if(!byPhone[key]||p.totalPts>(byPhone[key].totalPoints||0)){
+          byPhone[key]={
+            id:"sh_"+key,
+            name:p.name||key,
+            nickname:p.nick||p.name||key,
+            phone:key,
+            totalPoints:Number(p.totalPts)||0,
+            runs:Number(p.runs)||0,
+            wickets:Number(p.wickets)||0,
+            sixes:Number(p.sixes)||0,
+          };
+        }
+      }
+      // Include local players not in sheet
+      for(const u of state.users){
+        if(u.phone&&!byPhone[u.phone])byPhone[u.phone]=u;
+      }
+      const players=Object.values(byPhone).sort((a,b)=>b.totalPoints-a.totalPoints);
+      lbf.innerHTML=players.length?renderLB(players):renderLB(state.users);
+    } else {
+      lbf.innerHTML=renderLB(state.users);
+    }
+  }catch(e){
+    lbf.innerHTML=renderLB(state.users);
+  }
+}
+
+
 function refresh(){
   updateBanner();updateCooldown();
   const u=me();if(!u)return;
@@ -1093,14 +1137,21 @@ function initSwipe(){
   window.addEventListener("mouseup",e=>{if(swipe.dragging)end();});
 }
 
+// Outcome weights for batting (pure random — power has no effect on result)
 const batZones=[
-  {min:88,outcome:{label:"6",points:6,runs:6,sixes:1,type:"positive"},sel:".z-six"},
-  {min:72,outcome:{label:"4",points:4,runs:4,type:"positive"},sel:".z-four"},
-  {min:54,outcome:{label:"3",points:3,runs:3,type:"positive"},sel:".z-three"},
-  {min:36,outcome:{label:"2",points:2,runs:2,type:"positive"},sel:".z-two"},
-  {min:18,outcome:{label:"1",points:1,runs:1,type:"positive"},sel:".z-one-a"},
-  {min:0, outcome:{label:"1",points:1,runs:1,type:"positive"},sel:".z-one-b"},
+  {weight:10,outcome:{label:"6",points:6,runs:6,sixes:1,type:"positive"},sel:".z-six"},
+  {weight:20,outcome:{label:"4",points:4,runs:4,type:"positive"},sel:".z-four"},
+  {weight:10,outcome:{label:"3",points:3,runs:3,type:"positive"},sel:".z-three"},
+  {weight:20,outcome:{label:"2",points:2,runs:2,type:"positive"},sel:".z-two"},
+  {weight:25,outcome:{label:"1",points:1,runs:1,type:"positive"},sel:".z-one-a"},
+  {weight:15,outcome:{label:"Dot",points:0,runs:0,type:"gold"},sel:".z-one-b"},
 ];
+function weightedRandom(zones){
+  const total=zones.reduce((s,z)=>s+(z.weight||1),0);
+  let r=Math.random()*total;
+  for(const z of zones){r-=(z.weight||1);if(r<=0)return z;}
+  return zones[zones.length-1];
+}
 
 document.getElementById("bat-start").addEventListener("click",()=>{
   batState.active=true;
@@ -1118,7 +1169,7 @@ async function playBatShot(power){
   batState.active=false;
   document.getElementById("bat-start").disabled=false;
   document.getElementById("bat-start").textContent="▶ Start Delivery";
-  const zone=batZones.find(z=>power>=z.min)||batZones[batZones.length-1];
+  const zone=weightedRandom(batZones);
   const zEl=document.querySelector(zone.sel);if(zEl)zEl.classList.add("hit");
   const zPos={".z-six":{top:"8%",left:"50%"},".z-four":{top:"20%",left:"82%"},".z-three":{top:"50%",left:"90%"},".z-two":{top:"76%",left:"82%"},".z-one-a":{top:"88%",left:"50%"},".z-one-b":{top:"50%",left:"8%"}};
   const tgt=zPos[zone.sel];
@@ -1146,13 +1197,14 @@ async function playBatShot(power){
 
 // ─── BOWLING ───
 let bowlState={interval:null,needle:0,dir:1,inPlay:false,ballsThisOver:0};
+// Outcome weights for bowling (pure random — needle position has no effect on result)
 const bowlZones=[
-  {min:84,outcome:{label:"Bowled",points:12,wickets:1,type:"positive"},sel:".z-bowl"},
-  {min:64,outcome:{label:"Catch",points:8,wickets:1,type:"positive"},sel:".z-catch"},
-  {min:46,outcome:{label:"LBW",points:4,wickets:1,type:"positive"},sel:".z-lbw"},
-  {min:28,outcome:{label:"-1",points:-1,type:"negative"},sel:".z-m1"},
-  {min:12,outcome:{label:"-4",points:-4,type:"negative"},sel:".z-m4"},
-  {min:0, outcome:{label:"-6",points:-6,type:"negative"},sel:".z-m6"},
+  {weight:12,outcome:{label:"Bowled",points:12,wickets:1,type:"positive"},sel:".z-bowl"},
+  {weight:16,outcome:{label:"Catch",points:8,wickets:1,type:"positive"},sel:".z-catch"},
+  {weight:18,outcome:{label:"LBW",points:4,wickets:1,type:"positive"},sel:".z-lbw"},
+  {weight:20,outcome:{label:"-1",points:-1,type:"negative"},sel:".z-m1"},
+  {weight:20,outcome:{label:"-4",points:-4,type:"negative"},sel:".z-m4"},
+  {weight:14,outcome:{label:"-6",points:-6,type:"negative"},sel:".z-m6"},
 ];
 function resetBowlUI(){
   clearInterval(bowlState.interval);bowlState.interval=null;
@@ -1180,7 +1232,7 @@ document.getElementById("bowl-release").addEventListener("click",async()=>{
   clearInterval(bowlState.interval);bowlState.interval=null;
   document.getElementById("bowl-release").disabled=true;
   const ss=bowlState.needle;
-  const zone=bowlZones.find(z=>ss>=z.min)||bowlZones[bowlZones.length-1];
+  const zone=weightedRandom(bowlZones);
   const isNeg=zone.outcome.type==="negative";
   const zEl=document.querySelector(zone.sel);if(zEl)zEl.classList.add("hit");
   document.getElementById("bowl-ball").animate([{top:"13%",left:"50%",transform:"translateX(-50%) scale(1)"},{top:"78%",left:"50%",transform:"translateX(-50%) scale(1.1)"}],{duration:300,easing:"ease-in",fill:"forwards"});
