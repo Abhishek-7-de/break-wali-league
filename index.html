@@ -891,7 +891,7 @@ function refresh(){
     else if(id==="pr-balls")el.textContent=u.matchesPlayed||0;
   });
   const lbp=document.getElementById("lb-preview");if(lbp)lbp.innerHTML=renderLB(state.users,5);
-  const lbf=document.getElementById("lb-full");if(lbf)lbf.innerHTML=renderLB(state.users);
+  // Full leaderboard is handled exclusively by fetchSheetLeaderboard() now
   save(state);
 }
 
