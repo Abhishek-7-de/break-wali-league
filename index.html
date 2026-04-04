@@ -863,6 +863,20 @@ async function fetchSheetLeaderboard(){
         if(u.phone&&!byPhone[u.phone])byPhone[u.phone]=u;
       }
       const players=Object.values(byPhone).sort((a,b)=>b.totalPoints-a.totalPoints);
+      
+      // Update local state.users with fetched real stats so personal dashboard works
+      for(let u of state.users){
+        if(u.phone && byPhone[u.phone]){
+          const p = byPhone[u.phone];
+          u.totalPoints = Math.max(u.totalPoints || 0, p.totalPoints || 0);
+          u.runs = Math.max(u.runs || 0, p.runs || 0);
+          u.wickets = Math.max(u.wickets || 0, p.wickets || 0);
+          u.sixes = Math.max(u.sixes || 0, p.sixes || 0);
+        }
+      }
+      save(state);
+      refresh();
+      
       lbf.innerHTML=players.length?renderLB(players):renderLB(state.users);
     } else {
       lbf.innerHTML=renderLB(state.users);
@@ -1313,6 +1327,7 @@ function updateHomeStats(){
 updateBanner();updateHomeStats();initSwipe();
 if(state.currentUserId){refresh();navigate("dashboard");}else{navigate("home");}
 setTimeout(()=>document.getElementById("splash").classList.add("hide"),1800);
+setTimeout(fetchSheetLeaderboard, 500);
 setInterval(()=>{updateBanner();if(state.currentUserId){refresh();}updateHomeStats();},60000);
 </script>
 
