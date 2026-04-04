@@ -41,6 +41,9 @@ function handleRequest(e) {
       case "getLeaderboard":
         result = getLeaderboard(Number(params.limit) || 50);
         break;
+      case "getUserStats":
+        result = getUserStats(params.phone);
+        break;
       case "register":
         result = registerUser(params.phone, params.name, params.nick || "");
         break;
@@ -143,6 +146,36 @@ function getLeaderboard(limit) {
     return { ok: true, players: players };
   } catch(err) {
     return { ok: false, error: err.toString(), players: [] };
+  }
+}
+
+// ── GET USER STATS ───────────────────────────────────────────
+// Returns the most recent total scores for a specific phone number
+function getUserStats(phone) {
+  try {
+    var ss = getOrCreateSheet(SHEET_GAME_PLAYS);
+    if (ss.getLastRow() <= 1) return { ok: true, stats: null };
+    
+    var data = ss.getDataRange().getValues();
+    // Search from bottom up for the latest entry
+    for (var i = data.length - 1; i >= 1; i--) {
+      var row = data[i];
+      if (String(row[3] || "").trim() === String(phone).trim()) {
+        return {
+          ok: true,
+          stats: {
+            totalPoints: Number(row[10]) || 0,
+            runs: Number(row[11]) || 0,
+            wickets: Number(row[12]) || 0,
+            sixes: Number(row[13]) || 0,
+            matchesPlayed: Number(row[14]) || 0
+          }
+        };
+      }
+    }
+    return { ok: true, stats: null };
+  } catch(err) {
+    return { ok: false, error: err.toString(), stats: null };
   }
 }
 

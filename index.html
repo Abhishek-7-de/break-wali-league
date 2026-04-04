@@ -1049,8 +1049,28 @@ document.getElementById("btn-verify").addEventListener("click",async()=>{
 async function loginUser(uid,name,phone,nick,stay,method){
   // Check duplicate: if phone already exists in game state, reuse that user
   let user=state.users.find(u=>u.phone===phone);
+  let historicalStats = null;
   if(!user){
     user={id:uid,name,phone,nickname:nick||"",totalPoints:0,matchesPlayed:0,runs:0,wickets:0,sixes:0,lastOverTime:0,history:[]};
+    
+    // Fetch historical stats from Google Sheets for new local users
+    try {
+      if (SHEET_API_URL) {
+        toast("Syncing previous scores...");
+        const resp = await fetch(SHEET_API_URL + "?action=getUserStats&phone=" + encodeURIComponent(phone));
+        const data = await resp.json();
+        if (data.ok && data.stats) {
+          historicalStats = data.stats;
+          user.totalPoints = data.stats.totalPoints || 0;
+          user.runs = data.stats.runs || 0;
+          user.wickets = data.stats.wickets || 0;
+          user.sixes = data.stats.sixes || 0;
+          user.matchesPlayed = data.stats.matchesPlayed || 0;
+          toast("Historical scores synced!");
+        }
+      }
+    } catch(e) { console.error("History sync failed", e); }
+
     state.users.push(user);
   }else{
     // Existing user — update name/nick but keep stats
@@ -1059,8 +1079,12 @@ async function loginUser(uid,name,phone,nick,stay,method){
     user.id=uid;
     if(!user.lastOverTime)user.lastOverTime=0;
   }
-  // Firebase sync placeholder — add config tomorrow
-  // if(window.CBCL_FIREBASE&&method==="firebase"){...}
+  // Firebase sync placeholder
+  if(window.CBCL_FIREBASE){
+    try {
+      await window.CBCL_FIREBASE.upsertUserProfile({uid,phone,name,nickname:nick,historicalData:historicalStats});
+    } catch(e) { console.error("Firebase profile sync failed", e); }
+  }
   state.currentUserId=user.id;state.stayLoggedIn=stay;
   save(state);refresh();navigate("dashboard");
   logActivity("login",{phone,method});

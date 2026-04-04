@@ -63,11 +63,19 @@ async function getUserProfile(uid) {
   return snap.exists() ? snap.data() : null;
 }
 
-async function upsertUserProfile({uid,phone,name,nickname,profilePhoto}) {
+async function upsertUserProfile({uid,phone,name,nickname,profilePhoto,historicalData}) {
   const ref = doc(db,'users',uid);
   const existing = await getUserProfile(uid);
   if (!existing) {
-    await setDoc(ref, defaultUserPayload({uid,phone,name,nickname,profilePhoto}));
+    let payload = defaultUserPayload({uid,phone,name,nickname,profilePhoto});
+    if (historicalData) {
+      payload.totalPoints = historicalData.totalPoints || 0;
+      payload.runs = historicalData.runs || 0;
+      payload.wickets = historicalData.wickets || 0;
+      payload.sixes = historicalData.sixes || 0;
+      payload.matchesPlayed = historicalData.matchesPlayed || 0;
+    }
+    await setDoc(ref, payload);
   } else {
     await updateDoc(ref, { name, nickname:nickname||existing.nickname||'', profilePhoto:profilePhoto||existing.profilePhoto||'', updatedAt:serverTimestamp() });
   }
