@@ -126,22 +126,21 @@ function getLeaderboard(limit) {
     for (var i = 1; i < data.length; i++) {
       var row      = data[i];
       var phone    = String(row[3] || "").trim();
-      var name     = String(row[4] || "").trim();
-      var nick     = String(row[5] || "").trim();
-      var totalPts = Number(row[10]) || 0;
-      var runs     = Number(row[11]) || 0;
-      var wickets  = Number(row[12]) || 0;
-      var sixes    = Number(row[13]) || 0;
       if (!phone) continue;
-      // Keep the entry with the highest TotalPoints per phone
-      if (!byPhone[phone] || totalPts > byPhone[phone].totalPts) {
-        byPhone[phone] = { phone: phone, name: name, nick: nick, totalPts: totalPts, runs: runs, wickets: wickets, sixes: sixes };
-      }
+
+      // Always keep the latest entry found (since rows are appended, later is newer)
+      byPhone[phone] = {
+        phone: phone,
+        name: String(row[4] || "").trim(),
+        nick: String(row[5] || "").trim(),
+        totalPts: Number(row[10]) || 0,
+        runs: Number(row[11]) || 0,
+        wickets: Number(row[12]) || 0,
+        sixes: Number(row[13]) || 0
+      };
     }
 
-    var players = Object.values(byPhone)
-      .sort(function(a, b) { return b.totalPts - a.totalPts; })
-      .slice(0, limit);
+    var players = Object.values(byPhone);
 
     return { ok: true, players: players };
   } catch(err) {

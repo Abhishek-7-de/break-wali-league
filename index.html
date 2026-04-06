@@ -38,15 +38,14 @@
     @keyframes splP{from{filter:drop-shadow(0 0 20px rgba(255,215,0,0.2));}to{filter:drop-shadow(0 0 50px rgba(255,215,0,0.5));}}
     @keyframes dotP{0%,100%{opacity:0.2;transform:scale(0.7);}50%{opacity:1;transform:scale(1.3);}}
 
-    /* TICKER */
-    .ticker{background:rgba(0,0,0,0.6);border-bottom:1px solid rgba(255,215,0,0.08);padding:7px 0;overflow:hidden;position:relative;z-index:2;}
-    .ticker-inner{display:flex;align-items:center;gap:15px;width:100%;justify-content:space-evenly;margin:0 auto;padding:0 10px;}
-    .ticker-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:1;min-width:0;}
+    /* SPONSOR STRIP (Static, Repeated) */
+    .ticker{background:rgba(0,0,0,0.7);border-bottom:1px solid rgba(255,215,0,0.1);padding:6px 0;overflow:hidden;position:relative;z-index:2;white-space:nowrap;}
+    .ticker-inner{display:inline-flex;align-items:center;gap:20px;padding:0 15px;}
+    .ticker-item{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;}
     /* Remove black BG from logos: mix-blend-mode:lighten kills black pixels */
-    .ticker-logo{height:auto;max-height:30px;width:100%;max-width:110px;object-fit:contain;mix-blend-mode:lighten;filter:brightness(1.3) contrast(1.05);}
-
-    .ticker-tag{font-family:"Rajdhani",sans-serif;font-size:8px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);opacity:0.7;}
-    .ticker-div{width:1px;height:32px;background:rgba(255,255,255,0.07);}
+    .ticker-logo{height:22px;width:auto;object-fit:contain;mix-blend-mode:lighten;filter:brightness(1.2) contrast(1.1);}
+    .ticker-tag{font-family:"Rajdhani",sans-serif;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);opacity:0.8;}
+    .ticker-div{width:1px;height:12px;background:rgba(255,255,255,0.15);flex-shrink:0;}
 
 
     /* MATCH BANNER */
@@ -184,6 +183,10 @@
     .lb-name span{font-size:10px;color:var(--muted);}
     .lb-pts{font-family:"Bebas Neue",sans-serif;font-size:19px;color:var(--gold);text-align:right;}
     .lb-pts span{display:block;font-family:"DM Sans",sans-serif;font-size:9px;color:var(--muted);}
+    /* LB TABS */
+    .lb-tabs{display:flex;gap:6px;padding:10px 14px 0;}
+    .lb-tab{flex:1;font-family:"Rajdhani",sans-serif;font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:7px 0;border-radius:var(--r-md);border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:all 0.18s;}
+    .lb-tab.active{background:rgba(255,215,0,0.12);border-color:rgba(255,215,0,0.35);color:var(--gold);}
 
     /* GAMEPLAY */
     .gp-pad{padding:14px;display:grid;gap:12px;}
@@ -537,7 +540,12 @@
           <div><div class="eyebrow">All Players</div><h3 style="font-family:Bebas Neue,sans-serif;font-size:24px;letter-spacing:0.06em">RANKINGS</h3></div>
           <button class="btn btn-ghost btn-sm" onclick="navigate('dashboard')">← Back</button>
         </div>
-        <div class="lb-list" id="lb-full"></div>
+        <div class="lb-tabs">
+          <button class="lb-tab active" id="lbt-overall" onclick="switchLBTab('overall')">Overall</button>
+          <button class="lb-tab" id="lbt-bat" onclick="switchLBTab('bat')">Batsman</button>
+          <button class="lb-tab" id="lbt-bowl" onclick="switchLBTab('bowl')">Bowler</button>
+        </div>
+        <div class="lb-list" id="lb-full" style="padding:10px 14px;"></div>
       </div>
     </div>
     <div class="card">
@@ -819,71 +827,94 @@ function toast(msg){const e=document.getElementById("toast");e.textContent=msg;e
 
 // ─── LB ───
 function initials(n){const p=n.trim().split(" ");return(p[0][0]+(p[1]?.[0]||p[0][1]||"")).toUpperCase();}
-function renderLB(users,limit=99){
-  const sorted=[...users].sort((a,b)=>b.totalPoints-a.totalPoints).slice(0,limit);
-  if(!sorted.length)return'<p style="color:var(--muted);font-size:13px;padding:8px">No players yet.</p>';
+
+// Stored raw players from sheet for tab switching
+let _lbPlayers=[];
+let _lbTab='overall';
+
+function renderLBRows(players,sortKey,metricLabel,metricFn,limit=99){
+  if(!players||!players.length)return'<p style="color:var(--muted);font-size:13px;padding:8px">No players yet.</p>';
+  const sorted=[...players].sort((a,b)=>metricFn(b)-metricFn(a)).slice(0,limit);
   const uid=state.currentUserId;
   return sorted.map((u,i)=>{
     const rc=i===0?"r1":i===1?"r2":i===2?"r3":"";
-    return `<div class="lb-row${u.id===uid?" me":""}"><div class="rank-num ${rc}">${i+1}</div><div class="lb-name"><strong>${u.nickname||u.name}</strong><span>${u.runs||0} runs · ${u.wickets||0} wkts</span></div><div class="lb-pts">${u.totalPoints||0}<span>pts</span></div></div>`;
+    const val=metricFn(u);
+    return `<div class="lb-row${u.id===uid?" me":""}"><div class="rank-num ${rc}">${i+1}</div><div class="lb-name"><strong>${u.nickname||u.name}</strong><span>${u.runs||0} runs · ${u.wickets||0} wkts</span></div><div class="lb-pts">${val}<span>${metricLabel}</span></div></div>`;
   }).join("");
+}
+
+function renderLB(users,limit=99){
+  // Legacy helper for preview card — sorts by totalPoints
+  return renderLBRows(users,'totalPoints','pts',u=>u.totalPoints||0,limit);
+}
+
+function switchLBTab(tab){
+  _lbTab=tab;
+  ['overall','bat','bowl'].forEach(t=>{
+    document.getElementById('lbt-'+t)?.classList.toggle('active',t===tab);
+  });
+  const lbf=document.getElementById('lb-full');
+  if(!lbf)return;
+  const players=_lbPlayers.length?_lbPlayers:state.users;
+  if(tab==='bat')     lbf.innerHTML=renderLBRows(players,'runs','runs',u=>u.runs||0);
+  else if(tab==='bowl')lbf.innerHTML=renderLBRows(players,'wickets','wkts',u=>u.wickets||0);
+  else                 lbf.innerHTML=renderLBRows(players,'totalPoints','pts',u=>u.totalPoints||0);
 }
 
 // ─── FETCH LIVE LEADERBOARD FROM GOOGLE SHEET ───
 async function fetchSheetLeaderboard(){
   const lbf=document.getElementById("lb-full");
   if(!lbf)return;
-  if(!SHEET_API_URL){lbf.innerHTML=renderLB(state.users);return;}
+  if(!SHEET_API_URL){_lbPlayers=state.users;switchLBTab(_lbTab);return;}
   lbf.innerHTML='<p style="color:var(--muted);font-size:13px;padding:8px;text-align:center">⏳ Loading live rankings…</p>';
   try{
     const url=SHEET_API_URL+"?action=getLeaderboard&limit=50";
     const resp=await fetch(url,{redirect:"follow"});
     const data=await resp.json();
     if(data.ok&&Array.isArray(data.players)&&data.players.length){
-      // Merge sheet players with local state (take the max totalPoints)
+      // Merge sheet players with local state (latest entry wins)
       const byPhone={};
       for(const u of state.users){if(u.phone)byPhone[u.phone]={...u};}
       for(const p of data.players){
         const key=p.phone;
         if(!key)continue;
-        if(!byPhone[key]||p.totalPts>(byPhone[key].totalPoints||0)){
-          byPhone[key]={
-            id:"sh_"+key,
-            name:p.name||key,
-            nickname:p.nick||p.name||key,
-            phone:key,
-            totalPoints:Number(p.totalPts)||0,
-            runs:Number(p.runs)||0,
-            wickets:Number(p.wickets)||0,
-            sixes:Number(p.sixes)||0,
-          };
-        }
+        byPhone[key]={
+          id:"sh_"+key,
+          name:p.name||key,
+          nickname:p.nick||p.name||key,
+          phone:key,
+          totalPoints:Number(p.totalPts)||0,
+          runs:Number(p.runs)||0,
+          wickets:Number(p.wickets)||0,
+          sixes:Number(p.sixes)||0,
+        };
       }
       // Include local players not in sheet
       for(const u of state.users){
         if(u.phone&&!byPhone[u.phone])byPhone[u.phone]=u;
       }
-      const players=Object.values(byPhone).sort((a,b)=>b.totalPoints-a.totalPoints);
-      
-      // Update local state.users with fetched real stats so personal dashboard works
+      _lbPlayers=Object.values(byPhone);
+
+      // Update local user stats from sheet
       for(let u of state.users){
-        if(u.phone && byPhone[u.phone]){
-          const p = byPhone[u.phone];
-          u.totalPoints = Math.max(u.totalPoints || 0, p.totalPoints || 0);
-          u.runs = Math.max(u.runs || 0, p.runs || 0);
-          u.wickets = Math.max(u.wickets || 0, p.wickets || 0);
-          u.sixes = Math.max(u.sixes || 0, p.sixes || 0);
+        if(u.phone&&byPhone[u.phone]){
+          const p=byPhone[u.phone];
+          u.totalPoints=Math.max(u.totalPoints||0,p.totalPoints||0);
+          u.runs=Math.max(u.runs||0,p.runs||0);
+          u.wickets=Math.max(u.wickets||0,p.wickets||0);
+          u.sixes=Math.max(u.sixes||0,p.sixes||0);
         }
       }
       save(state);
       refresh();
-      
-      lbf.innerHTML=players.length?renderLB(players):renderLB(state.users);
-    } else {
-      lbf.innerHTML=renderLB(state.users);
+      switchLBTab(_lbTab);
+    }else{
+      _lbPlayers=state.users;
+      switchLBTab(_lbTab);
     }
   }catch(e){
-    lbf.innerHTML=renderLB(state.users);
+    _lbPlayers=state.users;
+    switchLBTab(_lbTab);
   }
 }
 
