@@ -39,8 +39,8 @@
     @keyframes dotP{0%,100%{opacity:0.2;transform:scale(0.7);}50%{opacity:1;transform:scale(1.3);}}
 
     /* SPONSOR STRIP (Static, Repeated) */
-    .ticker{background:rgba(0,0,0,0.7);border-bottom:1px solid rgba(255,215,0,0.1);padding:24px 0 6px;overflow:hidden;position:relative;z-index:10;white-space:nowrap;margin-top:0;}
-    .ticker-inner{display:inline-flex;align-items:center;gap:25px;padding:0 20px;}
+    .ticker{background:rgba(0,0,0,0.7);border-bottom:1px solid rgba(255,215,0,0.1);padding:env(safe-area-inset-top,0px) 0 6px;overflow:hidden;position:relative;z-index:10;white-space:nowrap;margin-top:0;}
+    .ticker-inner{display:inline-flex;align-items:center;gap:25px;padding:6px 20px;}
     .ticker-item{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;}
     /* Remove black BG from logos: mix-blend-mode:lighten kills black pixels */
     .ticker-logo{height:22px;width:auto;object-fit:contain;mix-blend-mode:lighten;filter:brightness(1.2) contrast(1.1);}
@@ -832,7 +832,7 @@ function initials(n){const p=n.trim().split(" ");return(p[0][0]+(p[1]?.[0]||p[0]
 let _lbPlayers=[];
 let _lbTab='overall';
 
-function renderLBRows(players,sortKey,metricLabel,metricFn,limit=99){
+function renderLBRows(players,sortKey,metricLabel,metricFn,limit=500){
   if(!players||!players.length)return'<p style="color:var(--muted);font-size:13px;padding:8px">No players yet.</p>';
   const sorted=[...players].sort((a,b)=>metricFn(b)-metricFn(a)).slice(0,limit);
   const uid=state.currentUserId;
@@ -843,7 +843,7 @@ function renderLBRows(players,sortKey,metricLabel,metricFn,limit=99){
   }).join("");
 }
 
-function renderLB(users,limit=99){
+function renderLB(users,limit=500){
   // Legacy helper for preview card — sorts by totalPoints
   return renderLBRows(users,'totalPoints','pts',u=>u.totalPoints||0,limit);
 }
@@ -923,21 +923,23 @@ async function fetchSheetLeaderboard(){
 function refresh(){
   updateBanner();updateCooldown();
   const u=me();if(!u)return;
-  const sorted=[...state.users].sort((a,b)=>b.totalPoints-a.totalPoints);
-  const rank=sorted.findIndex(x=>x.id===u.id)+1;
+  // Rank is computed from all known players (sheet + local)
+  const allPlayers=_lbPlayers.length?_lbPlayers:state.users;
+  const sorted=[...allPlayers].sort((a,b)=>b.totalPoints-a.totalPoints);
+  const rank=sorted.findIndex(x=>x.id===u.id||x.phone===u.phone)+1;
   document.getElementById("av-box").textContent=initials(u.nickname||u.name);
   document.getElementById("p-name").textContent=u.nickname||u.name;
-  document.getElementById("p-meta").textContent=u.name+" · Rank #"+rank;
+  document.getElementById("p-meta").textContent=u.name+" · Rank #"+(rank>0?rank:"-");
   ["s-pts","s-rank","s-runs","s-wkts","pr-runs","pr-wkts","pr-sixes","pr-balls"].forEach(id=>{
     const el=document.getElementById(id); if(!el)return;
     if(id==="s-pts")el.textContent=u.totalPoints||0;
-    else if(id==="s-rank")el.textContent="#"+rank;
+    else if(id==="s-rank")el.textContent="#"+(rank>0?rank:"-");
     else if(id==="s-runs"||id==="pr-runs")el.textContent=u.runs||0;
     else if(id==="s-wkts"||id==="pr-wkts")el.textContent=u.wickets||0;
     else if(id==="pr-sixes")el.textContent=u.sixes||0;
     else if(id==="pr-balls")el.textContent=u.matchesPlayed||0;
   });
-  const lbp=document.getElementById("lb-preview");if(lbp)lbp.innerHTML=renderLB(state.users,5);
+  const lbp=document.getElementById("lb-preview");if(lbp)lbp.innerHTML=renderLB(allPlayers,5);
   // Full leaderboard is handled exclusively by fetchSheetLeaderboard() now
   save(state);
 }
@@ -1105,11 +1107,25 @@ async function loginUser(uid,name,phone,nick,stay,method){
 
     state.users.push(user);
   }else{
-    // Existing user — update name/nick but keep stats
+    // Existing returning user — also sync latest stats from sheet
     user.name=name;
     if(nick)user.nickname=nick;
     user.id=uid;
     if(!user.lastOverTime)user.lastOverTime=0;
+    try {
+      if (SHEET_API_URL) {
+        const resp = await fetch(SHEET_API_URL + "?action=getUserStats&phone=" + encodeURIComponent(phone));
+        const data = await resp.json();
+        if (data.ok && data.stats) {
+          user.totalPoints = Math.max(user.totalPoints||0, data.stats.totalPoints||0);
+          user.runs        = Math.max(user.runs||0,        data.stats.runs||0);
+          user.wickets     = Math.max(user.wickets||0,     data.stats.wickets||0);
+          user.sixes       = Math.max(user.sixes||0,       data.stats.sixes||0);
+          user.matchesPlayed = Math.max(user.matchesPlayed||0, data.stats.matchesPlayed||0);
+          toast("Scores synced from cloud ☁️");
+        }
+      }
+    } catch(e) { console.error("Returning user sync failed", e); }
   }
   // Firebase sync placeholder
   if(window.CBCL_FIREBASE){
@@ -1375,9 +1391,11 @@ document.getElementById("btn-logout").addEventListener("click",()=>{state.curren
 
 // ─── HOME STATS ───
 function updateHomeStats(){
-  document.getElementById("home-players").textContent=state.users.length;
+  // Use sheet players if available, otherwise fall back to local
+  const pool=_lbPlayers.length?_lbPlayers:state.users;
+  document.getElementById("home-players").textContent=pool.length;
   document.getElementById("home-balls").textContent=state.users.reduce((a,u)=>a+(u.matchesPlayed||0),0);
-  document.getElementById("home-top").textContent=Math.max(0,...state.users.map(u=>u.totalPoints||0));
+  document.getElementById("home-top").textContent=Math.max(0,...pool.map(u=>u.totalPoints||0));
 }
 
 // ─── BOOT ───
