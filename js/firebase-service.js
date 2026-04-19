@@ -3,17 +3,18 @@ import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, updateProfile } from
 import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDVORHO39x44pCO4I_DtZ_kn2KCWgdADr0",
-  authDomain: "break-wali-league.firebaseapp.com",
-  projectId: "break-wali-league",
-  storageBucket: "break-wali-league.firebasestorage.app",
-  messagingSenderId: "168964292865",
-  appId: "1:168964292865:web:927cf2ef87239fccae9b00",
-  measurementId: "G-JZ6WGYBWSS"
+  apiKey: "AIzaSyBExkLl-cG5KSbeXzP5P4K_oSmxJgu1Q-I",
+  authDomain: "break-wali-league-5c94b.firebaseapp.com",
+  projectId: "break-wali-league-5c94b",
+  storageBucket: "break-wali-league-5c94b.firebasestorage.app",
+  messagingSenderId: "672522390930",
+  appId: "1:672522390930:web:93e9853c765a40d214c54b",
+  measurementId: "G-W1JM6LHJCX"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+auth.useDeviceLanguage();
 const db = getFirestore(app);
 
 let confirmationResultRef = null;
@@ -38,15 +39,17 @@ function defaultUserPayload({uid,phone,name,nickname,profilePhoto}) {
 function getRecaptcha(containerId='recaptcha-container') {
   if (recaptchaRef) return recaptchaRef;
   recaptchaRef = new RecaptchaVerifier(auth, containerId, {
-    size: 'normal',
+    size: 'invisible',
     callback: () => {},
-    'expired-callback': () => { recaptchaRef = null; }
+    'expired-callback': () => { try{recaptchaRef.clear();}catch(e){} recaptchaRef = null; }
   });
   return recaptchaRef;
 }
 
 async function sendOtp(phoneNumber, containerId='recaptcha-container') {
   if (recaptchaRef) { try { recaptchaRef.clear(); } catch(e){} recaptchaRef = null; }
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = '';
   const recaptcha = getRecaptcha(containerId);
   confirmationResultRef = await signInWithPhoneNumber(auth, phoneNumber, recaptcha);
   return true;

@@ -396,7 +396,7 @@
           </div>
           <div class="fgroup full"><div class="flabel">Nickname</div><input class="finput" id="inp-nick" type="text" placeholder="Arena nickname (optional)"/></div>
         </div>
-        <!-- recaptcha-container removed — using internal OTP. Re-add when Firebase is configured -->
+        <div id="recaptcha-container"></div>
         <div class="otp-row">
           <div class="fgroup">
             <div class="flabel">OTP *</div>
@@ -956,11 +956,24 @@ function findByPhone(phone){return getRegSheet().find(r=>r.phone===phone)||null;
 function addToSheet(entry){const sheet=getRegSheet();sheet.push(entry);saveRegSheet(sheet);}
 function updateInSheet(phone,updates){const sheet=getRegSheet();const idx=sheet.findIndex(r=>r.phone===phone);if(idx>=0){Object.assign(sheet[idx],updates);saveRegSheet(sheet);}}
 
-// ── OTP Store (one OTP per phone, stored locally) ──
-const OTP_STORE_KEY="bwl_otp_store";
-function getOtpStore(){try{return JSON.parse(localStorage.getItem(OTP_STORE_KEY))||{};}catch(e){return{};}}
-function saveOtpStore(store){try{localStorage.setItem(OTP_STORE_KEY,JSON.stringify(store));}catch(e){}}
-function generateOtp(){return String(Math.floor(100000+Math.random()*900000));}
+// Map Firebase Auth error codes to user-facing messages
+function firebaseAuthError(err){
+  const code=(err&&err.code)||"";
+  switch(code){
+    case "auth/invalid-phone-number":    return "Invalid phone number format.";
+    case "auth/missing-phone-number":    return "Enter a phone number first.";
+    case "auth/quota-exceeded":          return "Daily SMS quota exceeded. Try again tomorrow.";
+    case "auth/too-many-requests":       return "Too many attempts. Wait a few minutes and try again.";
+    case "auth/captcha-check-failed":    return "Captcha failed. Reload the page and try again.";
+    case "auth/invalid-app-credential":  return "App not authorised. Contact support.";
+    case "auth/operation-not-allowed":   return "Phone sign-in is not enabled for this project.";
+    case "auth/network-request-failed":  return "Network error. Check your connection.";
+    case "auth/invalid-verification-code": return "Incorrect OTP. Check the code and try again.";
+    case "auth/code-expired":            return "OTP expired. Tap Send OTP for a new one.";
+    case "auth/session-expired":         return "OTP session expired. Tap Send OTP again.";
+    default: return (err&&err.message)||"Something went wrong. Try again.";
+  }
+}
 
 // ── SEND OTP ──
 document.getElementById("btn-send-otp").addEventListener("click",async()=>{
@@ -971,31 +984,40 @@ document.getElementById("btn-send-otp").addEventListener("click",async()=>{
   if(!name){toast("Enter your name");return;}
   if(!PHONE_RE.test(phone)){toast("Enter valid 10-digit phone");return;}
   const btn=document.getElementById("btn-send-otp");
-  btn.disabled=true;btn.textContent="Generating...";
+  btn.disabled=true;btn.textContent="Sending...";
   statusEl.className="otp-status";statusEl.style.display="none";
 
-  // Check if phone already registered
+  // Check if phone already registered (skip OTP for returning users)
   const existing=findByPhone(phone);
   if(existing&&existing.verified){
-    // Bypass OTP and auto-login directly!
     await loginUser("u_"+phone, existing.name, phone, existing.nickname, true, "auto_login");
     btn.disabled=false;btn.textContent="Send OTP";
     return;
   }
 
-  // Generate unique OTP for this phone
-  const otp=generateOtp();
-  const store=getOtpStore();
-  store[phone]={otp,name,nick,createdAt:Date.now(),expiresAt:Date.now()+10*60*1000};
-  saveOtpStore(store);
+  if(!window.CBCL_FIREBASE){
+    statusEl.className="otp-status error";
+    statusEl.textContent="Auth service unavailable. Reload the page.";
+    statusEl.style.display="block";
+    btn.disabled=false;btn.textContent="Send OTP";
+    return;
+  }
 
-  // Show OTP on screen (since no SMS service yet)
-  statusEl.className="otp-status success";
-  statusEl.innerHTML='✓ Your OTP: <strong style="font-size:22px;letter-spacing:0.2em;color:#00e676;display:inline-block;margin:4px 0">'+otp+'</strong><br><span style="font-size:11px;opacity:0.7">Enter this code below and click Verify & Play</span>';
-  statusEl.style.display="block";
-
-  logActivity("otp_sent",{phone,method:"internal"});
-  btn.disabled=false;btn.textContent="Resend OTP";
+  try{
+    await window.CBCL_FIREBASE.sendOtp("+91"+phone,"recaptcha-container");
+    statusEl.className="otp-status success";
+    statusEl.innerHTML='✓ OTP sent to +91 '+phone+'<br><span style="font-size:11px;opacity:0.7">Enter the 6-digit code from your SMS below</span>';
+    statusEl.style.display="block";
+    logActivity("otp_sent",{phone,method:"firebase"});
+    btn.disabled=false;btn.textContent="Resend OTP";
+  }catch(err){
+    console.error("Firebase sendOtp error:",err);
+    statusEl.className="otp-status error";
+    statusEl.textContent=firebaseAuthError(err);
+    statusEl.style.display="block";
+    logActivity("otp_error",{phone,code:err?.code||"",message:err?.message||""});
+    btn.disabled=false;btn.textContent="Send OTP";
+  }
 });
 
 // ── VERIFY OTP ──
@@ -1011,72 +1033,41 @@ document.getElementById("btn-verify").addEventListener("click",async()=>{
   const btn=document.getElementById("btn-verify");
   btn.disabled=true;btn.textContent="Verifying...";
 
-  // A) MASTER OTP — always works (admin bypass)
+  // A) MASTER OTP — admin bypass (skips Firebase)
   if(otp===MASTER_OTP){
     await loginUser("u_"+phone,name,phone,nick,stay,"master");
     btn.disabled=false;btn.textContent="Verify & Play 🏏";
     return;
   }
 
-  // B) Check against internally generated OTP
-  const store=getOtpStore();
-  const pending=store[phone];
-  if(!pending){
+  // B) Firebase Phone Auth — verify real SMS code
+  if(!window.CBCL_FIREBASE){
     statusEl.className="otp-status error";
-    statusEl.textContent="No OTP generated for this number. Click Send OTP first.";
+    statusEl.textContent="Auth service unavailable. Reload the page.";
     statusEl.style.display="block";
     btn.disabled=false;btn.textContent="Verify & Play 🏏";
     return;
   }
 
-  // Check expiry (10 minutes)
-  if(Date.now()>pending.expiresAt){
-    delete store[phone];saveOtpStore(store);
+  try{
+    const fbUser=await window.CBCL_FIREBASE.verifyOtp(otp);
+    const existing=findByPhone(phone);
+    if(!existing){
+      addToSheet({phone,name,nickname:nick||"",registeredAt:new Date().toISOString(),registeredDate:new Date().toLocaleDateString("en-IN"),registeredTime:new Date().toLocaleTimeString("en-IN"),lastLogin:new Date().toISOString(),loginCount:1,verified:true,uid:fbUser.uid});
+    }else{
+      updateInSheet(phone,{lastLogin:new Date().toISOString(),loginCount:(existing.loginCount||0)+1,name,nickname:nick||existing.nickname,uid:fbUser.uid});
+    }
+    sheetLog({action:"logPlay",phone,name,nick:nick||"",mode:"register",outcome:"verified",pts:0,boost:1,totalPts:0});
+    await loginUser(fbUser.uid,name,phone,nick,stay,"firebase_otp");
+  }catch(err){
+    console.error("Firebase verifyOtp error:",err);
     statusEl.className="otp-status error";
-    statusEl.textContent="OTP expired. Click Send OTP to get a new one.";
+    statusEl.textContent=firebaseAuthError(err);
     statusEl.style.display="block";
+    logActivity("otp_verify_error",{phone,code:err?.code||"",message:err?.message||""});
+  }finally{
     btn.disabled=false;btn.textContent="Verify & Play 🏏";
-    return;
   }
-
-  // Check OTP match
-  if(pending.otp!==otp){
-    statusEl.className="otp-status error";
-    statusEl.textContent="Incorrect OTP. Check the code and try again.";
-    statusEl.style.display="block";
-    btn.disabled=false;btn.textContent="Verify & Play 🏏";
-    return;
-  }
-
-  // ✅ OTP correct — clear it and register/login
-  delete store[phone];saveOtpStore(store);
-
-  // Save to registration sheet (prevent duplicates)
-  const existing=findByPhone(phone);
-  if(!existing){
-    addToSheet({
-      phone,name,nickname:nick||"",
-      registeredAt:new Date().toISOString(),
-      registeredDate:new Date().toLocaleDateString("en-IN"),
-      registeredTime:new Date().toLocaleTimeString("en-IN"),
-      lastLogin:new Date().toISOString(),
-      loginCount:1,
-      verified:true
-    });
-  }else{
-    updateInSheet(phone,{
-      lastLogin:new Date().toISOString(),
-      loginCount:(existing.loginCount||0)+1,
-      name:name,
-      nickname:nick||existing.nickname
-    });
-  }
-
-  // Also push to Google Sheet if available (fire-and-forget)
-  sheetLog({action:"logPlay",phone,name,nick:nick||"",mode:"register",outcome:"verified",pts:0,boost:1,totalPts:0});
-
-  await loginUser("u_"+phone,name,phone,nick,stay,"internal_otp");
-  btn.disabled=false;btn.textContent="Verify & Play 🏏";
 });
 
 // ── LOGIN USER ──
@@ -1408,8 +1399,6 @@ setInterval(()=>{updateBanner();if(state.currentUserId){refresh();}updateHomeSta
 
 <script src="./js/config.js" onerror="void 0"></script>
 <script src="./js/sounds.js" onerror="void 0"></script>
-<!-- Firebase disabled — using internal OTP. Uncomment when Firebase config is ready:
-<script type="module" src="./js/firebase-service.js" onerror="void 0"></script>
--->
+<script type="module" src="./js/firebase-service.js"></script>
 </body>
 </html>

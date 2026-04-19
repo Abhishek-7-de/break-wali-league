@@ -1,0 +1,9 @@
+{
+  "name": "break-wali-league",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "npx --yes serve . -l 8000 --no-clipboard",
+    "dev": "npx --yes serve . -l 8000 --no-clipboard"
+  }
+}
