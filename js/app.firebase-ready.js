@@ -154,11 +154,13 @@
     storage.save(state);
   };
 
+  // simulateRivalsTick — ONLY runs on the 3 seeded demo users (u1, u2, u3)
+  // Real players' scores come exclusively from Firestore via listenLeaderboard()
+  const DEMO_USER_IDS = ['u1', 'u2', 'u3'];
   const simulateRivalsTick = () => {
-    const rivals = state.users.filter((u) => u.id !== state.currentUserId);
-    if (!rivals.length) return;
-
-    const movers = rivals.sort(() => Math.random() - 0.5).slice(0, Math.min(2, rivals.length));
+    const demoRivals = state.users.filter((u) => DEMO_USER_IDS.includes(u.id) && u.id !== state.currentUserId);
+    if (!demoRivals.length) return;
+    const movers = demoRivals.sort(() => Math.random() - 0.5).slice(0, Math.min(2, demoRivals.length));
     movers.forEach((rival) => {
       const gain = Math.random();
       if (gain > 0.78) {
@@ -498,10 +500,9 @@
     });
   }
 
-  setInterval(() => {
-    simulateRivalsTick();
-    refresh();
-  }, 9000);
+  // Refresh cooldown timer display every minute (so buttons update automatically)
+  setInterval(refresh, 60000);
 
+  // Boost pill update every 30s
   setInterval(updateBoostPills, 30000);
 })();
