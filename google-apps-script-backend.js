@@ -78,6 +78,14 @@ function logGamePlay(params) {
   var overWickets   = Number(params.overWickets)|| 0;
   var overPts       = Number(params.overPts)    || 0;
 
+  // ── Only log to sheet when an over is complete ───────────
+  // Per-ball calls (overComplete=false) are skipped to avoid
+  // duplicate rows. One clean row per over per player.
+  if (!overComplete && mode !== "REGISTER" && mode !== "sync") {
+    return { ok: true, skipped: true };
+  }
+  // ────────────────────────────────────────────────────────
+
   var ss  = getOrCreateSheet(SHEET_GAME_PLAYS);
   var now = new Date();
 

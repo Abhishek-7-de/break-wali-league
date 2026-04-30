@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BWL — Audit & Clean Tool</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0a0a1a;color:#e0e0e0;font-family:'Segoe UI',sans-serif;padding:20px;}
+  h1{font-size:22px;color:#ffd700;margin-bottom:4px;}
+  .sub{font-size:12px;color:#888;margin-bottom:20px;}
+  .card{background:#111;border:1px solid #222;border-radius:12px;padding:16px;margin-bottom:16px;}
+  .card h2{font-size:14px;color:#ffd700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;}
+  .stat-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .stat{background:#1a1a2e;border:1px solid #2a2a4e;border-radius:8px;padding:10px 16px;text-align:center;min-width:110px;}
+  .stat .num{font-size:24px;font-weight:700;color:#ffd700;}
+  .stat .lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.08em;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{text-align:left;padding:7px 8px;border-bottom:2px solid #333;color:#ffd700;font-size:10px;text-transform:uppercase;letter-spacing:.07em;}
+  td{padding:6px 8px;border-bottom:1px solid #1a1a2e;vertical-align:middle;}
+  tr:hover td{background:#1a1a2e;}
+  .badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;}
+  .badge.valid{background:rgba(0,230,118,.15);color:#00e676;}
+  .badge.fake{background:rgba(255,59,78,.15);color:#ff3b4e;}
+  .badge.cheat{background:rgba(255,165,0,.15);color:#ffa500;}
+  .badge.ok{background:rgba(100,200,100,.1);color:#6dc86d;}
+  .btn{padding:8px 18px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s;margin:4px;}
+  .btn-gold{background:#ffd700;color:#000;}
+  .btn-gold:hover{background:#ffed4a;}
+  .btn-red{background:#ff3b4e;color:#fff;}
+  .btn-ghost{background:transparent;border:1px solid #444;color:#ccc;}
+  .btn-ghost:hover{border-color:#ffd700;color:#ffd700;}
+  .actions{margin-bottom:16px;display:flex;flex-wrap:wrap;gap:4px;}
+  pre{background:#0d0d1a;border:1px solid #222;border-radius:8px;padding:12px;font-size:11px;overflow-x:auto;white-space:pre-wrap;max-height:400px;overflow-y:auto;color:#aaf0d1;}
+  .warn{color:#ffa500;font-weight:600;}
+  .ok{color:#00e676;}
+  input[type=number]{background:#1a1a2e;border:1px solid #333;border-radius:6px;color:#fff;padding:6px 10px;font-size:12px;width:80px;}
+  label{color:#aaa;font-size:12px;margin-right:6px;}
+  .filter-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+</style>
+</head>
+<body>
+
+<h1>🏏 Break Wali League — Audit & Clean Tool</h1>
+<p class="sub">Upload your two CSV files below. This tool runs 100% in your browser — no data leaves your machine.</p>
+
+<div class="card">
+  <h2>Step 1 — Upload Files</h2>
+  <div style="display:flex;gap:20px;flex-wrap:wrap;">
+    <div>
+      <label style="display:block;margin-bottom:6px;color:#ffd700;">Billing List CSV (valid phone numbers)</label>
+      <input type="file" id="billingFile" accept=".csv" style="color:#ccc;">
+    </div>
+    <div>
+      <label style="display:block;margin-bottom:6px;color:#ffd700;">Game Data CSV (current_game_data.csv)</label>
+      <input type="file" id="gameFile" accept=".csv" style="color:#ccc;">
+    </div>
+  </div>
+  <br>
+  <button class="btn btn-gold" onclick="runAudit()">▶ Run Audit</button>
+</div>
+
+<div id="results" style="display:none;">
+
+<div class="card">
+  <h2>Summary</h2>
+  <div class="stat-row" id="summaryStats"></div>
+</div>
+
+<div class="card">
+  <h2>Step 2 — Review Fake / Invalid Users</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:10px;">These phone numbers are in the game data but NOT in the billing list. These are fake/test accounts from the demo-OTP era.</p>
+  <div id="fakeUsers"></div>
+</div>
+
+<div class="card">
+  <h2>Step 3 — Review Cooldown Abuse (Multiple Overs Same Day)</h2>
+  <div class="filter-row">
+    <label>Flag players with more than <input type="number" id="maxOvers" value="3" min="1" max="20"> overs played in 12h</label>
+    <button class="btn btn-ghost" onclick="renderCheaters()">Apply Filter</button>
+  </div>
+  <div id="cheaterUsers"></div>
+</div>
+
+<div class="card">
+  <h2>Step 4 — Clean Leaderboard (Valid Players Only, Fair Points)</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:10px;">
+    Only billing-list phones are included. Points are calculated as: <strong>sum of all "Over Complete" rows</strong> for that phone, <strong>excluding rows where the same phone played more than once within 12 hours</strong> (those extra overs are cheated and removed).
+  </p>
+  <div class="actions">
+    <button class="btn btn-gold" onclick="exportCleanLeaderboard()">⬇ Export Clean Leaderboard CSV</button>
+    <button class="btn btn-gold" onclick="exportFirestoreScript()">📜 Export Firestore Reset Script</button>
+  </div>
+  <div id="cleanLeaderboard"></div>
+</div>
+
+<div class="card">
+  <h2>Step 5 — Firestore Reset Script</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:10px;">Copy this and paste it into your Firebase Console > Firestore > (run in browser console on firebase.google.com while logged in as admin).</p>
+  <button class="btn btn-ghost" onclick="renderScript()">Generate Script</button>
+  <pre id="scriptOutput" style="margin-top:10px;display:none;"></pre>
+</div>
+
+</div>
+
+<script>
+let billingPhones = new Set();
+let gameRows = [];
+let auditDone = false;
+
+async function readFile(file) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.readAsText(file, 'UTF-8');
+  });
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(line => {
+    // CSV-aware split
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { inQ = !inQ; continue; }
+      if (line[i] === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+      cur += line[i];
+    }
+    cols.push(cur.trim());
+    const row = {};
+    header.forEach((h, i) => row[h] = cols[i] || '');
+    return row;
+  });
+}
+
+async function runAudit() {
+  const bf = document.getElementById('billingFile').files[0];
+  const gf = document.getElementById('gameFile').files[0];
+  if (!bf || !gf) { alert('Please upload both files first.'); return; }
+
+  const billingText = await readFile(bf);
+  const gameText = await readFile(gf);
+
+  // Parse billing list — just phone numbers, one per line
+  billingPhones = new Set(
+    billingText.split(/\r?\n/)
+      .map(l => l.trim().replace(/\D/g, ''))
+      .filter(l => l.length >= 10)
+      .map(l => l.slice(-10)) // normalize to last 10 digits
+  );
+
+  // Parse game CSV
+  const allRows = parseCSV(gameText);
+  // Only keep "Over Complete" play rows (not REGISTER rows)
+  gameRows = allRows.filter(r => r.OverComplete === 'YES' && r.Phone && r.Phone.length >= 6);
+
+  auditDone = true;
+  document.getElementById('results').style.display = 'block';
+
+  // Get unique phones in game data
+  const gamePhones = new Set(allRows.map(r => normalizePhone(r.Phone)).filter(p => p.length === 10));
+  const fakePhones = [...gamePhones].filter(p => !billingPhones.has(p));
+  const validPhones = [...gamePhones].filter(p => billingPhones.has(p));
+
+  document.getElementById('summaryStats').innerHTML = `
+    <div class="stat"><div class="num">${billingPhones.size}</div><div class="lbl">Billing List</div></div>
+    <div class="stat"><div class="num">${gamePhones.size}</div><div class="lbl">In Game Data</div></div>
+    <div class="stat" style="border-color:#ff3b4e55"><div class="num" style="color:#ff3b4e">${fakePhones.length}</div><div class="lbl">Fake / Invalid</div></div>
+    <div class="stat" style="border-color:#00e67655"><div class="num" style="color:#00e676">${validPhones.length}</div><div class="lbl">Valid Players</div></div>
+    <div class="stat"><div class="num">${gameRows.length}</div><div class="lbl">Total Overs Played</div></div>
+  `;
+
+  renderFakeUsers(fakePhones, allRows);
+  renderCheaters();
+  renderCleanLeaderboard();
+}
+
+function normalizePhone(p) {
+  if (!p) return '';
+  p = String(p).replace(/\D/g, '');
+  if (p.startsWith('91') && p.length === 12) p = p.slice(2);
+  return p.slice(-10);
+}
+
+function renderFakeUsers(fakePhones, allRows) {
+  if (!fakePhones.length) {
+    document.getElementById('fakeUsers').innerHTML = '<p class="ok">✅ No fake users found!</p>';
+    return;
+  }
+
+  // Build per-phone summary from game rows
+  const byPhone = {};
+  allRows.forEach(r => {
+    const p = normalizePhone(r.Phone);
+    if (!p) return;
+    if (!byPhone[p]) byPhone[p] = { name: r.Name || '-', overs: 0, totalPts: 0 };
+    if (r.OverComplete === 'YES') {
+      byPhone[p].overs++;
+      byPhone[p].totalPts = Math.max(byPhone[p].totalPts, Number(r.TotalPoints) || 0);
+    }
+  });
+
+  let html = `<table><tr><th>#</th><th>Phone</th><th>Name</th><th>Overs</th><th>Peak Points</th><th>Status</th></tr>`;
+  fakePhones.sort().forEach((p, i) => {
+    const d = byPhone[p] || { name: '-', overs: 0, totalPts: 0 };
+    const isObvious = /^(0+|1{10}|3{10}|8{10}|9{10}|1234567890|1213\d+)$/.test(p);
+    html += `<tr>
+      <td>${i+1}</td>
+      <td><strong>${p}</strong></td>
+      <td>${d.name}</td>
+      <td>${d.overs}</td>
+      <td style="color:#ffd700">${d.totalPts}</td>
+      <td><span class="badge ${isObvious ? 'fake' : 'fake'}">${isObvious ? 'OBVIOUS TEST' : 'NOT IN BILLING'}</span></td>
+    </tr>`;
+  });
+  html += '</table>';
+  html += `<p style="margin-top:10px;font-size:12px;color:#ffa500;">⚠️ ${fakePhones.length} fake phones will be EXCLUDED from the clean leaderboard.</p>`;
+  document.getElementById('fakeUsers').innerHTML = html;
+}
+
+function getOversByPhone() {
+  // Group overs by phone, sorted by timestamp
+  const map = {};
+  gameRows.forEach(r => {
+    const p = normalizePhone(r.Phone);
+    if (!p) return;
+    if (!map[p]) map[p] = { name: r.Name || '-', nick: r.Nick || '-', overs: [] };
+    map[p].overs.push({
+      ts: new Date(r.Timestamp).getTime() || 0,
+      pts: Number(r.OverPoints) || Number(r.Points) || 0,
+      totalPts: Number(r.TotalPoints) || 0,
+      mode: r.Mode || '-',
+      outcome: r.Outcome || '-',
+      boost: r.Boost || 'Normal'
+    });
+  });
+  // Sort overs by timestamp
+  Object.values(map).forEach(d => d.overs.sort((a, b) => a.ts - b.ts));
+  return map;
+}
+
+function computeFairOvers(overs, maxPer12h = 1) {
+  // Allow only 1 over per 12h window per phone. Flag extra ones.
+  const COOLDOWN = 12 * 60 * 60 * 1000;
+  const validOvers = [];
+  const cheatedOvers = [];
+  let lastValidTs = 0;
+
+  overs.forEach(o => {
+    if (!lastValidTs || (o.ts - lastValidTs) >= COOLDOWN) {
+      validOvers.push(o);
+      lastValidTs = o.ts;
+    } else {
+      cheatedOvers.push(o);
+    }
+  });
+  return { validOvers, cheatedOvers };
+}
+
+function renderCheaters() {
+  const maxOvers = Number(document.getElementById('maxOvers')?.value || 3);
+  const byPhone = getOversByPhone();
+  const COOLDOWN = 12 * 60 * 60 * 1000;
+
+  const cheaters = [];
+  Object.entries(byPhone).forEach(([phone, data]) => {
+    if (!billingPhones.has(phone)) return; // skip fake users
+    const { cheatedOvers } = computeFairOvers(data.overs);
+    if (cheatedOvers.length > 0) {
+      const fairPts = data.overs.reduce((a, o) => a, 0);
+      cheaters.push({ phone, name: data.name, nick: data.nick,
+        totalOvers: data.overs.length,
+        cheatedOvers: cheatedOvers.length,
+        validOvers: data.overs.length - cheatedOvers.length,
+        cheatedPts: cheatedOvers.reduce((a, o) => a + o.pts, 0)
+      });
+    }
+  });
+
+  cheaters.sort((a, b) => b.cheatedOvers - a.cheatedOvers);
+
+  if (!cheaters.length) {
+    document.getElementById('cheaterUsers').innerHTML = '<p class="ok">✅ No cooldown abuse detected!</p>';
+    return;
+  }
+
+  let html = `<p style="font-size:12px;color:#ffa500;margin-bottom:10px;">Found <strong>${cheaters.length}</strong> players who played multiple overs within 12h (cooldown abuse). Their extra overs are excluded from the clean leaderboard.</p>`;
+  html += `<table><tr><th>Phone</th><th>Name</th><th>Nick</th><th>Total Overs</th><th>Valid Overs</th><th>Cheated Overs</th><th>Pts Removed</th></tr>`;
+  cheaters.forEach(c => {
+    html += `<tr>
+      <td>${c.phone}</td>
+      <td>${c.name}</td>
+      <td>${c.nick}</td>
+      <td>${c.totalOvers}</td>
+      <td style="color:#00e676">${c.validOvers}</td>
+      <td style="color:#ff3b4e">${c.cheatedOvers}</td>
+      <td style="color:#ffa500">-${c.cheatedPts} pts</td>
+    </tr>`;
+  });
+  html += '</table>';
+  document.getElementById('cheaterUsers').innerHTML = html;
+}
+
+let cleanData = [];
+
+function renderCleanLeaderboard() {
+  const byPhone = getOversByPhone();
+  cleanData = [];
+
+  Object.entries(byPhone).forEach(([phone, data]) => {
+    if (!billingPhones.has(phone)) return; // skip fake
+    const { validOvers } = computeFairOvers(data.overs);
+    if (!validOvers.length) return;
+
+    const totalPts = validOvers.reduce((a, o) => a + o.pts, 0);
+    const runs = validOvers.filter(o => o.mode === 'BAT').reduce((a, o) => a + (Number(o.outcome) || 0), 0);
+    const wickets = validOvers.filter(o => o.mode === 'BOWL').reduce((a, o) => {
+      const w = { Bowled: 6, Catch: 4, LBW: 2 };
+      // Approximate: use OverWickets from original or count wicket overs
+      return a;
+    }, 0);
+    const oversPlayed = validOvers.length;
+    const sixes = validOvers.filter(o => o.outcome === '6').length;
+
+    cleanData.push({
+      phone, name: data.name, nick: data.nick,
+      totalPts, runs, oversPlayed, sixes
+    });
+  });
+
+  cleanData.sort((a, b) => b.totalPts - a.totalPts);
+
+  let html = `<table><tr><th>Rank</th><th>Phone</th><th>Name</th><th>Nick</th><th>Valid Overs</th><th>Fair Points</th></tr>`;
+  cleanData.slice(0, 100).forEach((d, i) => {
+    html += `<tr>
+      <td><strong>#${i+1}</strong></td>
+      <td>${d.phone}</td>
+      <td>${d.name}</td>
+      <td>${d.nick}</td>
+      <td>${d.oversPlayed}</td>
+      <td style="color:#ffd700;font-weight:700">${d.totalPts}</td>
+    </tr>`;
+  });
+  if (cleanData.length > 100) html += `<tr><td colspan="6" style="color:#666;text-align:center">... and ${cleanData.length - 100} more (export CSV to see all)</td></tr>`;
+  html += '</table>';
+  document.getElementById('cleanLeaderboard').innerHTML = html;
+}
+
+function exportCleanLeaderboard() {
+  if (!cleanData.length) { alert('Run the audit first.'); return; }
+  const rows = [['Rank', 'Phone', 'Name', 'Nick', 'ValidOvers', 'FairPoints']];
+  cleanData.forEach((d, i) => rows.push([i+1, d.phone, d.name, d.nick, d.oversPlayed, d.totalPts]));
+  downloadCSV(rows, 'BWL_clean_leaderboard.csv');
+}
+
+function exportFirestoreScript() {
+  renderScript();
+  document.getElementById('scriptOutput').style.display = 'block';
+  document.getElementById('scriptOutput').scrollIntoView({behavior:'smooth'});
+}
+
+function renderScript() {
+  if (!cleanData.length) { alert('Run the audit first.'); return; }
+  const updates = cleanData.map(d => `  "${d.phone}": { totalPoints: ${d.totalPts}, matchesPlayed: ${d.oversPlayed}, lastOverTime: 0 }`).join(',\n');
+  const script = `// ============================================================
+// Break Wali League — Firestore Fair Reset Script
+// ============================================================
+// HOW TO RUN:
+// 1. Go to https://console.firebase.google.com
+// 2. Select your project: break-wali-league-5c94b
+// 3. Open Firestore Database
+// 4. Open Browser DevTools (F12) → Console tab
+// 5. Paste this entire script and press Enter
+// ============================================================
+
+(async () => {
+  const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js');
+  const { getFirestore, collection, getDocs, doc, updateDoc, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js');
+  
+  // NOTE: This script assumes you are already authenticated in the Firebase Console.
+  // It will read all users and reset points to the audited fair values.
+  
+  const fairPoints = {
+${updates}
+  };
+  
+  console.log('Starting fair reset for', Object.keys(fairPoints).length, 'valid players...');
+  
+  const db = getFirestore();
+  const snap = await getDocs(collection(db, 'users'));
+  let updated = 0, skipped = 0, zeroed = 0;
+  
+  for (const docSnap of snap.docs) {
+    const data = docSnap.data();
+    // Normalize phone: remove +91 prefix
+    const rawPhone = String(data.phone || '').replace(/\\D/g, '').slice(-10);
+    
+    if (fairPoints[rawPhone] !== undefined) {
+      const fair = fairPoints[rawPhone];
+      await updateDoc(doc(db, 'users', docSnap.id), {
+        totalPoints: fair.totalPoints,
+        matchesPlayed: fair.matchesPlayed,
+        lastOverTime: 0,
+        runs: 0,
+        wickets: 0,
+        sixes: 0,
+        history: [],
+        updatedAt: new Date()
+      });
+      console.log('✅ Updated:', rawPhone, '→', fair.totalPoints, 'pts');
+      updated++;
+    } else {
+      // Phone not in billing list — zero them out
+      await updateDoc(doc(db, 'users', docSnap.id), {
+        totalPoints: 0,
+        matchesPlayed: 0,
+        lastOverTime: 0,
+        runs: 0,
+        wickets: 0,
+        sixes: 0,
+        history: [],
+        updatedAt: new Date()
+      });
+      console.log('🚫 Zeroed fake user:', rawPhone);
+      zeroed++;
+    }
+  }
+  
+  console.log('\\n=== DONE ===');
+  console.log('Updated:', updated, 'valid players');
+  console.log('Zeroed:', zeroed, 'fake/invalid users');
+  console.log('Total processed:', snap.docs.length);
+})();`;
+
+  const el = document.getElementById('scriptOutput');
+  el.textContent = script;
+  el.style.display = 'block';
+}
+
+function downloadCSV(rows, filename) {
+  const csv = rows.map(r => r.map(c => '"' + String(c||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>

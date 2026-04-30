@@ -92,11 +92,13 @@
     const user = currentUser();
     if (!user) return;
 
-    const pointsSorted = board.sortUsersByPoints(state.users);
+    const DEMO_IDS = ['u1','u2','u3'];
+    const realUsers = state.users.filter(u => !DEMO_IDS.includes(u.id));
+    const pointsSorted = board.sortUsersByPoints(realUsers);
     const rank = pointsSorted.findIndex((item) => item.id === user.id) + 1;
 
     els.playerName.textContent = user.nickname || user.name;
-    els.playerMeta.textContent = `${user.name} • Rank #${rank || '-'}`;
+    els.playerMeta.textContent = `${user.name} \u2022 Rank #${rank || '-'}`;
     els.statPoints.textContent = user.totalPoints || 0;
     els.statRank.textContent = rank ? `#${rank}` : '#-';
     els.profileRuns.textContent = user.runs || 0;
@@ -106,14 +108,34 @@
     els.profileSixesFull.textContent = user.sixes || 0;
     els.profileDotsFull.textContent = user.matchesPlayed || 0;
     els.avatarBox.textContent = board.initials(user.nickname || user.name);
+
+    // Cooldown display on Play buttons
+    const COOLDOWN_MS = (fb && fb.COOLDOWN_MS) ? fb.COOLDOWN_MS : (12 * 60 * 60 * 1000);
+    const now = Date.now();
+    const lastOver = user.lastOverTime || 0;
+    const remaining = COOLDOWN_MS - (now - lastOver);
+
+    if (lastOver > 0 && remaining > 0) {
+      const hrs = Math.floor(remaining / 3600000);
+      const mins = Math.floor((remaining % 3600000) / 60000);
+      const coolText = `\u23F3 ${hrs}h ${mins}m`;
+      if (els.unlockBattingBtn) { els.unlockBattingBtn.textContent = coolText; els.unlockBattingBtn.disabled = true; els.unlockBattingBtn.style.opacity = '0.5'; }
+      if (els.unlockBowlingBtn) { els.unlockBowlingBtn.textContent = coolText; els.unlockBowlingBtn.disabled = true; els.unlockBowlingBtn.style.opacity = '0.5'; }
+    } else {
+      if (els.unlockBattingBtn) { els.unlockBattingBtn.textContent = '\uD83C\uDFCF Bat'; els.unlockBattingBtn.disabled = false; els.unlockBattingBtn.style.opacity = '1'; }
+      if (els.unlockBowlingBtn) { els.unlockBowlingBtn.textContent = '\uD83C\uDFB3 Bowl'; els.unlockBowlingBtn.disabled = false; els.unlockBowlingBtn.style.opacity = '1'; }
+    }
   };
 
   const updateBoards = () => {
-    const pointsSorted = board.sortUsersByPoints(state.users);
+    // Fetch real players from Firebase if available, otherwise use local state
+    const DEMO_IDS = ['u1','u2','u3'];
+    const realUsers = state.users.filter(u => !DEMO_IDS.includes(u.id));
+    const pointsSorted = board.sortUsersByPoints(realUsers);
     els.leaderboardPreview.innerHTML = board.renderRows(pointsSorted.slice(0, 5), state.currentUserId);
     els.leaderboardFull.innerHTML = board.renderRows(pointsSorted, state.currentUserId);
-    els.statsPreview.innerHTML = board.renderStatBlocks(state.users);
-    els.leaderboardStatsFull.innerHTML = board.renderStatBlocks(state.users);
+    els.statsPreview.innerHTML = board.renderStatBlocks(realUsers);
+    els.leaderboardStatsFull.innerHTML = board.renderStatBlocks(realUsers);
   };
 
   const setArenaDefault = () => {
@@ -248,11 +270,19 @@
           streak: saved.streak,
           playsToday: saved.playsToday,
           lastPlayDate: saved.lastPlayDate,
+          lastOverTime: saved.lastOverTime,
           history: saved.history
         });
 
         finalPoints = saved.finalPoints;
       } catch (error) {
+        if (error.message && error.message.startsWith('COOLDOWN:')) {
+          const parts = error.message.split(':');
+          const msg = parts[2] || 'Cooldown active — come back later';
+          toast(`\u23F3 ${msg}`);
+          refresh();
+          return; // Stop — don\'t save or show result
+        }
         console.error(error);
       }
     }
@@ -426,6 +456,47 @@
   refresh();
   navigate(state.currentUserId ? 'dashboard' : 'home');
   bootSplash();
+
+  // Real-time leaderboard — starts listening to Firestore for live score changes
+  if (fb && fb.listenLeaderboard) {
+    fb.listenLeaderboard((players) => {
+      const DEMO_IDS = ['u1','u2','u3'];
+      const DEMO_PHONES = ['9999999991','9999999992','9999999993'];
+      players.forEach(p => {
+        const phone = String(p.phone || '').replace(/\D/g,'').slice(-10);
+        if (DEMO_PHONES.includes(phone)) return;
+        const existing = state.users.find(u => u.id === p.uid);
+        if (existing) {
+          Object.assign(existing, {
+            totalPoints: p.totalPoints || 0,
+            matchesPlayed: p.matchesPlayed || 0,
+            runs: p.runs || 0,
+            wickets: p.wickets || 0,
+            sixes: p.sixes || 0,
+            lastOverTime: p.lastOverTime || 0
+          });
+        } else {
+          if (!DEMO_IDS.includes(p.uid)) {
+            state.users.push({
+              id: p.uid,
+              name: p.name || '-',
+              phone: p.phone || '',
+              nickname: p.nickname || '',
+              totalPoints: p.totalPoints || 0,
+              matchesPlayed: p.matchesPlayed || 0,
+              runs: p.runs || 0,
+              wickets: p.wickets || 0,
+              sixes: p.sixes || 0,
+              lastOverTime: p.lastOverTime || 0,
+              history: []
+            });
+          }
+        }
+      });
+      updateBoards();
+      updateProfile();
+    });
+  }
 
   setInterval(() => {
     simulateRivalsTick();

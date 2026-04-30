@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, updateProfile } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, getDocs, query, orderBy, limit, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBExkLl-cG5KSbeXzP5P4K_oSmxJgu1Q-I",
@@ -88,11 +88,26 @@ async function upsertUserProfile({uid,phone,name,nickname,profilePhoto,historica
   return await getUserProfile(uid);
 }
 
+const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
+
 async function saveGameResult({uid,mode,outcome,config}) {
   const ref = doc(db,'users',uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) throw new Error('User not found');
   const user = snap.data();
+
+  // ── SERVER-SIDE COOLDOWN ENFORCEMENT ─────────────────────
+  const now = Date.now();
+  const lastOver = user.lastOverTime || 0;
+  const elapsed = now - lastOver;
+  if (lastOver > 0 && elapsed < COOLDOWN_MS) {
+    const remainingMs = COOLDOWN_MS - elapsed;
+    const hrs = Math.floor(remainingMs / 3600000);
+    const mins = Math.floor((remainingMs % 3600000) / 60000);
+    throw new Error(`COOLDOWN:${remainingMs}:Come back in ${hrs}h ${mins}m`);
+  }
+  // ─────────────────────────────────────────────────────────
+
   const cfg = config || { matchBoost:{startHour:19,startMinute:0,endHour:23,endMinute:30,multiplier:2} };
   const multiplier = boostWindow(cfg) ? cfg.matchBoost.multiplier : 1;
   const finalPoints = outcome.points * multiplier;
@@ -105,6 +120,7 @@ async function saveGameResult({uid,mode,outcome,config}) {
     matchesPlayed:(user.matchesPlayed||0)+1,
     playsToday:(user.playsToday||0)+1,
     lastPlayDate:today,
+    lastOverTime:now,
     streak:isNewDay?(user.streak||0)+1:(user.streak||1),
     runs:(user.runs||0)+(outcome.runs||0),
     wickets:(user.wickets||0)+(outcome.wickets||0),
@@ -117,10 +133,19 @@ async function saveGameResult({uid,mode,outcome,config}) {
   return { ...user, ...updated, uid, finalPoints, multiplier };
 }
 
-async function fetchTopLeaderboard(count=25) {
+async function fetchTopLeaderboard(count=500) {
   const q = query(collection(db,'users'), orderBy('totalPoints','desc'), limit(count));
   const snap = await getDocs(q);
   return snap.docs.map(d=>d.data());
 }
 
-window.CBCL_FIREBASE = { app, auth, db, sendOtp, verifyOtp, getUserProfile, upsertUserProfile, saveGameResult, fetchTopLeaderboard };
+// Real-time leaderboard listener — calls callback whenever scores change
+function listenLeaderboard(callback, count=500) {
+  const q = query(collection(db,'users'), orderBy('totalPoints','desc'), limit(count));
+  return onSnapshot(q, (snap) => {
+    const players = snap.docs.map(d => d.data());
+    callback(players);
+  });
+}
+
+window.CBCL_FIREBASE = { app, auth, db, sendOtp, verifyOtp, getUserProfile, upsertUserProfile, saveGameResult, fetchTopLeaderboard, listenLeaderboard, COOLDOWN_MS };
