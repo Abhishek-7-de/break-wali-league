@@ -1,0 +1,148 @@
+# 🏏 Break Wali League — Complete Change Log & Ops Guide
+
+> **Last Updated:** April 30, 2026  
+> **Status:** Code fixes pushed to GitHub. Firestore data reset is still pending (manual step required — see Section 4).
+
+---
+
+## 📋 What Was Wrong (Bugs Found)
+
+| # | Bug | Severity | Root Cause |
+|---|-----|----------|------------|
+| 1 | **Fake users in leaderboard** | 🔴 Critical | Before Firebase OTP, any phone could log in — those ghost accounts are still in Firestore |
+| 2 | **116,000+ fake points** | 🔴 Critical | `simulateRivalsTick()` added random points to ALL players every 9 seconds, including real ones |
+| 3 | **Cooldown bypass** | 🔴 Critical | Logging out and back in reset the cooldown — it was only enforced client-side |
+| 4 | **Double entries in Google Sheet** | 🟡 Medium | Every ball click logged a new row — should only log once per over |
+| 5 | **Leaderboard capped at 25** | 🟡 Medium | Hard-coded `limit(25)` in Firestore query |
+| 6 | **Leaderboard not live** | 🟡 Medium | No real-time listener — required page refresh to see new scores |
+| 7 | **No cooldown timer shown** | 🟢 Low | Players didn't know how long to wait — buttons just stayed active |
+| 8 | **IPL schedule missing** | 🟢 Low | No fixture data in config for upcoming matches |
+
+---
+
+## ✅ Fixes Applied (Code — Already on GitHub)
+
+### File: `js/firebase-service.js`
+
+| What Changed | Details |
+|---|---|
+| **Added `onSnapshot` import** | Enables real-time Firestore listening |
+| **Server-side 12h cooldown** | Before saving any score, Firestore now checks `lastOverTime`. If < 12h, throws `COOLDOWN:Xms:Come back in Xh Ym`. Logging out does NOT bypass this anymore. |
+| **Saves `lastOverTime`** | Each game result now writes `lastOverTime: Date.now()` to the user's Firestore doc |
+| **Raised leaderboard limit** | `limit(25)` → `limit(500)` — shows all players |
+| **Added `listenLeaderboard()`** | Real-time Firestore listener — any score change anywhere updates everyone's leaderboard automatically |
+| **Exported `COOLDOWN_MS`** | Made the cooldown constant available to the UI |
+
+---
+
+### File: `js/app.firebase-ready.js`
+
+| What Changed | Details |
+|---|---|
+| **🔥 Killed fake points bug** | `simulateRivalsTick()` now **only** runs on demo users `u1, u2, u3`. Real players' scores come exclusively from Firestore. This fixes the 116,694 pts issue. |
+| **Removed rivals interval** | The `setInterval` that called `simulateRivalsTick` every 9 seconds on all users is removed. |
+| **Real-time Firestore listener** | `listenLeaderboard()` now wires up `onSnapshot` at boot — live scores push to UI without refresh |
+| **Cooldown timer on buttons** | Bat/Bowl buttons show `⏳ Xh Ym` when in cooldown, are disabled, and auto-restore when timer expires |
+| **Handles COOLDOWN error** | If someone somehow triggers a play while in cooldown, app shows toast and stops — does not save points |
+| **Filters demo users from leaderboard** | `u1, u2, u3` are never shown in the live rankings |
+| **Rank uses real users only** | Player's rank is calculated against real Firestore users, not demo users |
+| **Saves `lastOverTime` locally** | After each play, `lastOverTime` is stored on the local user object so the cooldown timer works immediately |
+
+---
+
+### File: `google-apps-script-backend.js`
+
+| What Changed | Details |
+|---|---|
+| **Per-ball logging blocked** | Added early return: if `overComplete !== true` and mode is not `REGISTER`, the row is **skipped**. |
+| **One row per over** | Only when a player completes a full over (or registers) does the sheet get a new row |
+
+> ⚠️ **You still need to copy-paste this updated code into Google Apps Script and redeploy.** See Section 3.
+
+---
+
+### File: `js/config.js`
+
+| What Changed | Details |
+|---|---|
+| **IPL 2026 fixtures added** | `iplMatches` array with all 35 remaining matches (Match 36–70, April 25 → May 24 2026) including teams, date, time, venue |
+
+---
+
+### File: `audit-tool.html` (NEW FILE)
+
+A standalone browser-based audit tool. Open in Chrome, upload your two CSVs, it gives you:
+- Full list of **fake/invalid phones** (not in billing list)
+- All **cooldown abusers** and how many illegal overs they played
+- **Clean leaderboard** with fair points only
+- **Firestore reset script** to paste in Firebase Console
+
+---
+
+## 🔧 What You Still Need To Do Manually
+
+### Step 1 — Run the Audit Tool
+1. Open `c:\Users\Hp\Desktop\chai-break-cricket-league\audit-tool.html` in Chrome
+2. Upload `billing_list.csv` and `current_game_data.csv`
+3. Click **Run Audit**
+4. Review the fake users and cheaters
+5. Click **Export Firestore Reset Script**
+
+### Step 2 — Reset Firestore Data
+The app code is fixed, but the **existing Firestore data still has the old bad points**. You need to run the reset script once:
+
+1. Go to [console.firebase.google.com](https://console.firebase.google.com)
+2. Select project **break-wali-league-5c94b**
+3. Open **Firestore Database**
+4. Press **F12** → go to **Console** tab
+5. Paste the script generated by `audit-tool.html` and press Enter
+6. Wait for it to finish (~1–2 min depending on user count)
+7. The leaderboard will auto-update via the real-time listener
+
+### Step 3 — Update Google Apps Script Backend
+The `google-apps-script-backend.js` changes only fix the local file. To apply to the live sheet:
+
+1. Go to [script.google.com](https://script.google.com)
+2. Open your BWL project
+3. Replace the code with the contents of `google-apps-script-backend.js`
+4. Click **Deploy** → **Manage Deployments** → **Edit** → **New version** → **Deploy**
+
+---
+
+## 🔍 How to Verify Everything Is Working
+
+| Check | How to verify |
+|---|---|
+| **No fake points** | Leaderboard should show scores ≤ 252 pts (max theoretical: 36pts × 7 overs × 1 player) |
+| **Cooldown works** | Play once, log out, log back in → play buttons should show `⏳ Xh Ym` |
+| **Sheet is clean** | After next game play, Google Sheet should only gain 1 row per over, not 6 rows |
+| **Leaderboard is live** | Open app on 2 devices — play on one, see the other update within seconds |
+| **Fake users gone** | After Firestore reset script runs, billing-invalid users will have 0 points |
+
+---
+
+## 📁 Files Changed
+
+```
+chai-break-cricket-league/
+├── js/
+│   ├── firebase-service.js   ← Cooldown, leaderboard limit, real-time listener
+│   ├── app.firebase-ready.js ← Fake points fix, cooldown UI, real-time integration
+│   └── config.js             ← IPL 2026 fixtures added
+├── google-apps-script-backend.js ← Sheet dedup fix (needs redeployment in GAS)
+└── audit-tool.html           ← NEW: browser audit & reset tool
+```
+
+---
+
+## 🎯 Max Legitimate Points Reference
+
+| Scenario | Max Points |
+|---|---|
+| 1 over batting (6 sixes) | 36 pts |
+| 1 over batting with 2× Boost | 72 pts |
+| 1 over bowling (6 wickets) | ~64 pts |
+| 7 days × 1 over × Normal | ~252 pts |
+| 7 days × 1 over × all Boost | ~504 pts |
+
+Anyone with **> 504 points** has definitely abused the system and their score should be reset.
