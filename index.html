@@ -1434,7 +1434,7 @@ document.getElementById("btn-gate-verify").addEventListener("click",()=>{
 document.getElementById("gate-pass").addEventListener("keypress",(e)=>{if(e.key==="Enter")document.getElementById("btn-gate-verify").click();});
 
 updateBanner();updateHomeStats();initSwipe();
-checkGate();
+// checkGate(); // Removed security gate for live release
 if(state.currentUserId){refresh();navigate("dashboard");}else{navigate("home");}
 setTimeout(()=>document.getElementById("splash").classList.add("hide"),1800);
 setTimeout(fetchSheetLeaderboard, 500);
