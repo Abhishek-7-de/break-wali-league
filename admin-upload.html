@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Leaderboard Uploader</title>
+  <style>
+    body { font-family: system-ui; background: #0f172a; color: white; padding: 2rem; }
+    button { padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    button:disabled { background: #64748b; cursor: not-allowed; }
+    #log { margin-top: 20px; padding: 10px; background: #1e293b; border-radius: 5px; max-height: 400px; overflow-y: auto; font-family: monospace; }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+  </style>
+</head>
+<body>
+  <h1>Update Firebase Leaderboard</h1>
+  <p>This tool will read the <code>clean_leaderboard.csv</code> file and update Firebase directly so the game shows the perfect stats.</p>
+  
+  <input type="file" id="csvFile" accept=".csv" />
+  <button id="uploadBtn" disabled>Upload to Firebase</button>
+  
+  <div id="log">Waiting for CSV file...</div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+    import { getFirestore, collection, getDocs, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBExkLl-cG5KSbeXzP5P4K_oSmxJgu1Q-I",
+      authDomain: "break-wali-league-5c94b.firebaseapp.com",
+      projectId: "break-wali-league-5c94b",
+      storageBucket: "break-wali-league-5c94b.firebasestorage.app",
+      messagingSenderId: "672522390930",
+      appId: "1:672522390930:web:93e9853c765a40d214c54b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const logEl = document.getElementById('log');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileInput = document.getElementById('csvFile');
+    let csvData = [];
+
+    function log(msg, type = '') {
+      const div = document.createElement('div');
+      div.textContent = msg;
+      if(type) div.className = type;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        csvData = [];
+        for(let i=1; i<lines.length; i++) {
+          if(!lines[i].trim()) continue;
+          const cols = lines[i].split(',');
+          csvData.push({
+            phone: cols[0],
+            name: cols[1],
+            nickname: cols[2],
+            totalPoints: parseInt(cols[3], 10),
+            matchesPlayed: parseInt(cols[4], 10),
+            runs: parseInt(cols[5], 10),
+            wickets: parseInt(cols[6], 10)
+          });
+        }
+        log(`Loaded ${csvData.length} players from CSV. Ready to upload.`, 'success');
+        uploadBtn.disabled = false;
+      };
+      reader.readAsText(file);
+    });
+
+    uploadBtn.addEventListener('click', async () => {
+      uploadBtn.disabled = true;
+      log('Fetching all users from Firebase to match phone numbers...');
+      
+      try {
+        const snap = await getDocs(collection(db, 'users'));
+        const fbUsers = [];
+        snap.forEach(d => fbUsers.push({ id: d.id, ...d.data() }));
+        log(`Found ${fbUsers.length} users in Firebase. Matching and updating...`);
+
+        let updated = 0;
+        let notFound = 0;
+
+        for (const p of csvData) {
+          // Normalize phone number (Firebase might have +91 or just the number)
+          const targetPhone = p.phone.trim();
+          const match = fbUsers.find(u => u.phone === targetPhone || u.phone === `+91${targetPhone}`);
+          
+          if (match) {
+            log(`Updating ${match.phone} (${p.name})...`);
+            await updateDoc(doc(db, 'users', match.id), {
+              totalPoints: p.totalPoints,
+              matchesPlayed: p.matchesPlayed,
+              runs: p.runs,
+              wickets: p.wickets,
+              name: p.name,
+              nickname: p.nickname
+            });
+            updated++;
+          } else {
+            notFound++;
+          }
+        }
+
+        log(`Done! Updated ${updated} players in Firebase. (${notFound} not found in DB)`, 'success');
+        log('The live game leaderboard is now completely perfectly synced!', 'success');
+      } catch (err) {
+        log(`Error: ${err.message}`, 'error');
+      }
+      uploadBtn.disabled = false;
+    });
+  </script>
+</body>
+</html>
