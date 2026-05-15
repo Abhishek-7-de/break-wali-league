@@ -115,9 +115,25 @@ async function saveGameResult({uid,mode,outcome,config}) {
   if (!snap.exists()) throw new Error('User not found');
   const user = snap.data();
 
-  // ── SERVER-SIDE COOLDOWN ENFORCEMENT ─────────────────────
-  const now = Date.now();
+  // 🛡️ ADVANCED COOLDOWN ENFORCEMENT (Anti-Spoofing) 🛡️
+  let now = Date.now();
+  try {
+    // Prevent device clock manipulation bypass
+    const tRes = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC', { cache: 'no-store' });
+    if (tRes.ok) {
+      const tData = await tRes.json();
+      now = new Date(tData.datetime).getTime();
+    }
+  } catch (e) {
+    now = Date.now();
+  }
+
   const lastOver = user.lastOverTime || 0;
+  
+  if (lastOver > now + 60000) {
+    throw new Error(`COOLDOWN:TimeSpoof:Please fix your device clock`);
+  }
+
   const elapsed = now - lastOver;
   if (lastOver > 0 && elapsed < COOLDOWN_MS) {
     const remainingMs = COOLDOWN_MS - elapsed;
