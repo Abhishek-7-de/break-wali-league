@@ -74,7 +74,25 @@
 
   const isBoostTime = () => {
     const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
     const mins = now.getHours() * 60 + now.getMinutes();
+
+    if (config.iplMatches && config.iplMatches.length > 0) {
+      const todayMatches = config.iplMatches.filter(match => match.date === todayStr);
+      for (const match of todayMatches) {
+        if (!match.time) continue;
+        const parts = match.time.split(':');
+        const startMins = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        const endMins = startMins + 4 * 60 + 30; // 4.5 hours duration
+        if (mins >= startMins && mins <= endMins) {
+          return true;
+        }
+      }
+    }
+
     const start = config.matchBoost.startHour * 60 + config.matchBoost.startMinute;
     const end = config.matchBoost.endHour * 60 + config.matchBoost.endMinute;
     return mins >= start && mins <= end;
@@ -83,7 +101,7 @@
   const updateBoostPills = () => {
     const text = isBoostTime()
       ? '🔥 Match Boost LIVE • 2× points'
-      : '⏳ Match Boost • 7:00 PM to 11:30 PM';
+      : '⏳ Match Boost • During Match Hours';
     els.globalBoostPill.textContent = text;
     if (els.arenaBoostPill) els.arenaBoostPill.textContent = text;
   };

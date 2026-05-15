@@ -44,20 +44,9 @@
 <h1>🏏 Break Wali League — Audit & Clean Tool</h1>
 <p class="sub">Upload your two CSV files below. This tool runs 100% in your browser — no data leaves your machine.</p>
 
-<div class="card">
-  <h2>Step 1 — Upload Files</h2>
-  <div style="display:flex;gap:20px;flex-wrap:wrap;">
-    <div>
-      <label style="display:block;margin-bottom:6px;color:#ffd700;">Billing List CSV (valid phone numbers)</label>
-      <input type="file" id="billingFile" accept=".csv" style="color:#ccc;">
-    </div>
-    <div>
-      <label style="display:block;margin-bottom:6px;color:#ffd700;">Game Data CSV (current_game_data.csv)</label>
-      <input type="file" id="gameFile" accept=".csv" style="color:#ccc;">
-    </div>
-  </div>
-  <br>
-  <button class="btn btn-gold" onclick="runAudit()">▶ Run Audit</button>
+<div class="card" id="loading-card">
+  <h2>Data Status</h2>
+  <p id="loading-text" style="color:#ffd700;">⏳ Fetching live data from server...</p>
 </div>
 
 <div id="results" style="display:none;">
@@ -83,7 +72,13 @@
 </div>
 
 <div class="card">
-  <h2>Step 4 — Clean Leaderboard (Valid Players Only, Fair Points)</h2>
+  <h2>Step 4 — Weekly Winners (Top 5 per Week)</h2>
+  <p style="font-size:12px;color:#888;margin-bottom:10px;">Based on clean data, grouped by ISO week.</p>
+  <div id="weeklyWinners"></div>
+</div>
+
+<div class="card">
+  <h2>Step 5 — Clean Leaderboard (Valid Players Only, Fair Points)</h2>
   <p style="font-size:12px;color:#888;margin-bottom:10px;">
     Only billing-list phones are included. Points are calculated as: <strong>sum of all "Over Complete" rows</strong> for that phone, <strong>excluding rows where the same phone played more than once within 12 hours</strong> (those extra overs are cheated and removed).
   </p>
@@ -95,7 +90,7 @@
 </div>
 
 <div class="card">
-  <h2>Step 5 — Firestore Reset Script</h2>
+  <h2>Step 6 — Firestore Reset Script</h2>
   <p style="font-size:12px;color:#888;margin-bottom:10px;">Copy this and paste it into your Firebase Console > Firestore > (run in browser console on firebase.google.com while logged in as admin).</p>
   <button class="btn btn-ghost" onclick="renderScript()">Generate Script</button>
   <pre id="scriptOutput" style="margin-top:10px;display:none;"></pre>
@@ -136,12 +131,20 @@ function parseCSV(text) {
 }
 
 async function runAudit() {
-  const bf = document.getElementById('billingFile').files[0];
-  const gf = document.getElementById('gameFile').files[0];
-  if (!bf || !gf) { alert('Please upload both files first.'); return; }
-
-  const billingText = await readFile(bf);
-  const gameText = await readFile(gf);
+  document.getElementById('loading-text').innerText = '⏳ Processing data...';
+  let billingText, gameText;
+  try {
+    const resB = await fetch('billing_list.csv');
+    if (!resB.ok) throw new Error('Network response was not ok');
+    billingText = await resB.text();
+    const resG = await fetch('current_game_data.csv');
+    if (!resG.ok) throw new Error('Network response was not ok');
+    gameText = await resG.text();
+  } catch(e) {
+    document.getElementById('loading-text').innerText = '❌ Failed to load data.';
+    return;
+  }
+  document.getElementById('loading-card').style.display = 'none';
 
   // Parse billing list — just phone numbers, one per line
   billingPhones = new Set(
@@ -175,7 +178,11 @@ async function runAudit() {
   renderFakeUsers(fakePhones, allRows);
   renderCheaters();
   renderCleanLeaderboard();
+  renderWeeklyWinners();
 }
+
+// Auto-run on load
+window.onload = runAudit;
 
 function normalizePhone(p) {
   if (!p) return '';
@@ -233,10 +240,7 @@ function getOversByPhone() {
       totalPts: Number(r.TotalPoints) || 0,
       mode: r.Mode || '-',
       outcome: r.Outcome || '-',
-      boost: r.Boost || 'Normal',
-      overRuns: Number(r.OverRuns) || 0,
-      overWickets: Number(r.OverWickets) || 0,
-      sixes: Number(r.Sixes) || 0
+      boost: r.Boost || 'Normal'
     });
   });
   // Sort overs by timestamp
@@ -308,6 +312,46 @@ function renderCheaters() {
 
 let cleanData = [];
 
+function getISOWeek(dateStr) {
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+
+function renderWeeklyWinners() {
+  const byPhone = getOversByPhone();
+  const weeks = {};
+
+  Object.entries(byPhone).forEach(([phone, data]) => {
+    if (!billingPhones.has(phone)) return;
+    const { validOvers } = computeFairOvers(data.overs);
+    
+    validOvers.forEach(o => {
+      const wk = getISOWeek(o.ts);
+      const weekLabel = "Week " + wk + " (" + new Date(o.ts).getFullYear() + ")";
+      if (!weeks[weekLabel]) weeks[weekLabel] = {};
+      if (!weeks[weekLabel][phone]) weeks[weekLabel][phone] = { name: data.name, nick: data.nick, pts: 0 };
+      weeks[weekLabel][phone].pts += o.pts;
+    });
+  });
+
+  let html = '';
+  Object.keys(weeks).sort((a,b) => b.localeCompare(a)).forEach(wk => {
+    html += `<h3 style="color:#aaf0d1;margin:15px 0 5px 0;">${wk}</h3>`;
+    const players = Object.entries(weeks[wk]).map(([p, d]) => ({ phone: p, ...d }));
+    players.sort((a, b) => b.pts - a.pts);
+    html += `<table><tr><th>Rank</th><th>Phone</th><th>Name</th><th>Nick</th><th>Points</th></tr>`;
+    players.slice(0, 5).forEach((d, i) => {
+      html += `<tr><td>#${i+1}</td><td>${d.phone}</td><td>${d.name}</td><td>${d.nick}</td><td style="color:#ffd700">${d.pts}</td></tr>`;
+    });
+    html += '</table>';
+  });
+  if(html === '') html = '<p class="ok">No data yet.</p>';
+  document.getElementById('weeklyWinners').innerHTML = html;
+}
+
 function renderCleanLeaderboard() {
   const byPhone = getOversByPhone();
   cleanData = [];
@@ -318,14 +362,18 @@ function renderCleanLeaderboard() {
     if (!validOvers.length) return;
 
     const totalPts = validOvers.reduce((a, o) => a + o.pts, 0);
-    const runs = validOvers.reduce((a, o) => a + (o.overRuns || 0), 0);
-    const wickets = validOvers.reduce((a, o) => a + (o.overWickets || 0), 0);
+    const runs = validOvers.filter(o => o.mode === 'BAT').reduce((a, o) => a + (Number(o.outcome) || 0), 0);
+    const wickets = validOvers.filter(o => o.mode === 'BOWL').reduce((a, o) => {
+      const w = { Bowled: 6, Catch: 4, LBW: 2 };
+      // Approximate: use OverWickets from original or count wicket overs
+      return a;
+    }, 0);
     const oversPlayed = validOvers.length;
-    const sixes = validOvers.reduce((a, o) => a + (o.sixes || 0), 0);
+    const sixes = validOvers.filter(o => o.outcome === '6').length;
 
     cleanData.push({
       phone, name: data.name, nick: data.nick,
-      totalPts, runs, wickets, oversPlayed, sixes
+      totalPts, runs, oversPlayed, sixes
     });
   });
 
@@ -362,7 +410,7 @@ function exportFirestoreScript() {
 
 function renderScript() {
   if (!cleanData.length) { alert('Run the audit first.'); return; }
-  const updates = cleanData.map(d => `  "${d.phone}": { totalPoints: ${d.totalPts}, matchesPlayed: ${d.oversPlayed}, lastOverTime: 0, runs: ${d.runs}, wickets: ${d.wickets}, sixes: ${d.sixes} }`).join(',\n');
+  const updates = cleanData.map(d => `  "${d.phone}": { totalPoints: ${d.totalPts}, matchesPlayed: ${d.oversPlayed}, lastOverTime: 0 }`).join(',\n');
   const script = `// ============================================================
 // Break Wali League — Firestore Fair Reset Script
 // ============================================================
@@ -402,9 +450,9 @@ ${updates}
         totalPoints: fair.totalPoints,
         matchesPlayed: fair.matchesPlayed,
         lastOverTime: 0,
-        runs: fair.runs,
-        wickets: fair.wickets,
-        sixes: fair.sixes,
+        runs: 0,
+        wickets: 0,
+        sixes: 0,
         history: [],
         updatedAt: new Date()
       });
